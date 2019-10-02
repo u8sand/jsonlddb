@@ -30,6 +30,7 @@ Important assumptions made by this architecture:
 '''
 
 from pprint import pformat
+import itertools
 
 
 def isIRI(v):
@@ -65,6 +66,13 @@ class defaultdict(dict):
     return super().__getitem__(k)
 
 
+class Ellipse:
+  def __repr__(self):
+    return '...'
+  def __str__(self):
+    return '...'
+ellipse = Ellipse()
+
 class JsonLDNode:
   ''' Represents a single node, providing the ability to observe and interact
   with the complete set of all relationships to this node abiding by the frame.
@@ -89,7 +97,7 @@ class JsonLDNode:
         if pred != '@id' and not pred.startswith('~')
       }, **{
         '@id': self._subj
-      }) if depth else '...'
+      }) if depth else ellipse
   #
   def __repr__(self):
     return pformat(self._repr(3))
@@ -116,11 +124,17 @@ class JsonLDFrame:
     self._db = db
     self._frame = frame
   #
-  def _repr(self, depth):
-    return collapse([
+  def _repr(self, depth, maxlen=6):
+    if not depth:
+      return ellipse
+    vals = [
       obj._repr(depth - 1) if getattr(obj, '_repr', None) is not None else obj
-      for obj in self
-    ]) if depth else '...'
+      for obj in itertools.islice(self, None, maxlen)
+    ]
+    if len(vals) == 1:
+      return vals[0]
+    elif len(vals) == maxlen:
+      return [*vals, ellipse]
   #
   def __repr__(self):
     return pformat(self._repr(4))
