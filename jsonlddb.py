@@ -56,8 +56,8 @@ class defaultdict(dict):
 
   https://gist.github.com/u8sand/1b6ae223b6333ab2d9ea37fa67094a98
   '''
-  def __init__(self, _default):
-    super().__init__(self)
+  def __init__(self, _default, **kwargs):
+    super().__init__(self, **kwargs)
     self._default = _default
 
   def __getitem__(self, k):
@@ -65,6 +65,11 @@ class defaultdict(dict):
       self[k] = self._default()
     return super().__getitem__(k)
 
+def ds(**kwargs):
+  return defaultdict(set, **kwargs)
+
+def dds(**kwargs):
+  return defaultdict(ds, **kwargs)
 
 class Ellipse:
   def __repr__(self):
@@ -177,8 +182,8 @@ class JsonLDFrame:
 class JsonLDDatabase(JsonLDFrame):
   def __init__(self):
     JsonLDFrame.__init__(self, self, {})
-    self._spo = defaultdict(lambda: defaultdict(lambda: set()))
-    self._pos = defaultdict(lambda: defaultdict(lambda: set()))
+    self._spo = dds()
+    self._pos = dds()
   #
   def update(self, jsonld):
     Q = [
