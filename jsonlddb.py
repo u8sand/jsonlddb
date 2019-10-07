@@ -140,6 +140,8 @@ class JsonLDFrame:
       return vals[0]
     elif len(vals) == maxlen:
       return [*vals, ellipse]
+    else:
+      return vals
   #
   def __repr__(self):
     return pformat(self._repr(4))
