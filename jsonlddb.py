@@ -30,6 +30,7 @@ Important assumptions made by this architecture:
 '''
 
 from pprint import pformat
+import json
 import itertools
 
 
@@ -99,7 +100,7 @@ class JsonLDNode:
           }
         )._repr(depth - 1)
         for pred, objs in self._db._spo[self._subj].items()
-        if pred != '@id' and not pred.startswith('~')
+        if pred not in ['@id', '*', '**'] and not pred.startswith('~')
       }, **{
         '@id': self._subj
       }) if depth else ellipse
@@ -108,7 +109,7 @@ class JsonLDNode:
     return pformat(self._repr(3))
   #
   def __str__(self):
-    return self._repr(3)
+    return str(self._repr(3))
   #
   def __getitem__(self, subj):
     if isLiteral(subj):
@@ -147,7 +148,7 @@ class JsonLDFrame:
     return pformat(self._repr(4))
   #
   def __str__(self):
-    return self._repr(4)
+    return str(self._repr(4))
   #
   def __getitem__(self, subj):
     if isIRI(subj):
@@ -189,11 +190,11 @@ class JsonLDDatabase(JsonLDFrame):
   #
   def update(self, jsonld):
     Q = [
-      (None, None, obj)
+      ([], None, obj)
       for obj in (jsonld if type(jsonld) == list else [jsonld])
     ]
     while Q:
-      subj, pred, obj = Q.pop()
+      subjs, pred, obj = Q.pop()
       assert type(obj) == dict, 'JSON-LD Formatting error'
       # obtain distinguishing literals for this node
       node = [
@@ -205,9 +206,17 @@ class JsonLDDatabase(JsonLDFrame):
       ]
       # construct a canonical id for the node using the distinguishing literals
       node_id = obj.get('@id', canonical_uuid(node))
-      # register this relationship to its parent
-      if subj is not None:
-        self.update_triples([(subj, pred, node_id)])
+      # register this relationship to its parent(s)
+      if subjs:
+        subj = subjs[-1]
+        self.update_triples([
+          (subj, pred, node_id),
+          (subj, '*', node_id),
+        ] + [
+          (s, '**', node_id)
+          for s in subjs
+        ])
+
       # register this node's literals
       self.update_triples([
         (node_id, p, o)
@@ -215,7 +224,7 @@ class JsonLDDatabase(JsonLDFrame):
       ])
       # add the remaining object relationships to Q to be processed in future iterations
       Q += [
-        (node_id, p, o)
+        (subjs + [node_id], p, o)
         for p, O in obj.items()
         for o in (O if type(O) == list else [O])
         if not isLiteral(o)
