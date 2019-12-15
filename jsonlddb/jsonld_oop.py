@@ -1,7 +1,5 @@
+from .jsonld_func import *
 from pprint import pformat
-import json
-import itertools
-
 
 def isIRI(v):
   import uuid
@@ -19,27 +17,6 @@ def force_list(v):
 def canonical_uuid(j):
   import uuid, json
   return uuid.uuid5(uuid.UUID('00000000-0000-0000-0000-000000000000'), json.dumps(j))
-
-class defaultdict(dict):
-  ''' A defaultdict that works as anticipated when nested
-  at the cost of potentially constructing empty values while reading.
-
-  https://gist.github.com/u8sand/1b6ae223b6333ab2d9ea37fa67094a98
-  '''
-  def __init__(self, _default, **kwargs):
-    super().__init__(self, **kwargs)
-    self._default = _default
-
-  def __getitem__(self, k):
-    if k not in self:
-      self[k] = self._default()
-    return super().__getitem__(k)
-
-def ds(**kwargs):
-  return defaultdict(set, **kwargs)
-
-def dds(**kwargs):
-  return defaultdict(ds, **kwargs)
 
 class Ellipse:
   def __repr__(self):
@@ -156,116 +133,16 @@ class JsonLDFrame:
 class JsonLDDatabase(JsonLDFrame):
   def __init__(self):
     JsonLDFrame.__init__(self, self, {})
-    self._spo = dds()
-    self._pos = dds()
+    self.index = JsonLDIndex()
   #
   def update(self, jsonld):
-    Q = [
-      ([], None, obj)
-      for obj in (jsonld if type(jsonld) == list else [jsonld])
-    ]
-    while Q:
-      subjs, pred, obj = Q.pop()
-      assert type(obj) == dict, 'JSON-LD Formatting error'
-      # obtain distinguishing literals for this node
-      node = [
-        (p, o)
-        for p, O in obj.items()
-        if p != '@id'
-        for o in (O if type(O) == list else [O])
-        if isLiteral(o)
-      ]
-      # construct a canonical id for the node using the distinguishing literals
-      node_id = obj.get('@id', canonical_uuid(node))
-      # register this relationship to its parent(s)
-      if subjs:
-        subj = subjs[-1]
-        self.update_triples([
-          (subj, pred, node_id),
-          (subj, '*', node_id),
-        ] + [
-          (s, '**', node_id)
-          for s in subjs
-        ])
-
-      # register this node's literals
-      self.update_triples([
-        (node_id, p, o)
-        for p, o in node
-      ])
-      # add the remaining object relationships to Q to be processed in future iterations
-      Q += [
-        (subjs + [node_id], p, o)
-        for p, O in obj.items()
-        for o in (O if type(O) == list else [O])
-        if not isLiteral(o)
-      ]
+    self.update_triples(jsonld_to_triples(jsonld))
   #
   def update_triples(self, triples):
-    for subj, pred, obj in triples:
-      self._spo[subj][pred].add(obj)
-      self._spo[obj]['~'+pred].add(subj)
-      self._pos[pred][obj].add(subj)
-      self._pos['~'+pred][subj].add(obj)
+    jsonld_index_insert_triples(triples, index=self.index)
   #
   def remove_triples(self, triples):
-    for subj, pred, obj in triples:
-      self._spo[subj][pred].remove(obj)
-      self._spo[obj]['~'+pred].remove(subj)
-      self._pos[pred][obj].remove(subj)
-      self._pos['~'+pred][subj].remove(obj)
+    jsonld_index_remove_triples(triples, index=self.index)
   #
   def frame(self, frame):
-    '''
-    This is the core of everything--the helper classes simply build off of
-      frames.
-
-    TODO: Allow "options" with [] notation
-    TODO: Eliminate recursion (not too difficult, probably makes ^ easier)
-    TODO: allow specifying minimal vs maximal subsets (currently always minimal)
-    '''
-    if '@id' in frame:
-      subjs = set([frame['@id']])
-      del frame['@id']
-    elif '~@id' in frame:
-      subjs = set([subj for subj in self._spo.keys() if isIRI(subj)])
-      del frame['~@id']
-    else:
-      subjs = None
-    #
-    # this frame
-    # O(deep_frame)
-    conds = [
-      (pred, obj)
-      for pred, objs in frame.items()
-      for obj in force_list(objs)
-      if isLiteral(obj)
-    ]
-    # O(deep_frame) * O(n_subjs)
-    for pred, obj in conds:
-      # O(1)
-      s = self._pos[pred][obj]
-      subjs = s if subjs is None else subjs & s # O(min(subjs, s))
-      if subjs == set():
-        return set()
-    #
-    # deep frame
-    deep_conds = [
-      (pred, obj)
-      for pred, objs in frame.items()
-      for obj in force_list(objs)
-      if type(obj) == dict
-    ]
-    for pred, obj in deep_conds:
-      s = set([
-        subj
-        for o in self.frame(obj)
-        for subj in (
-          self._pos[pred][o]
-        )
-      ])
-      subjs = s if subjs is None else subjs & s
-      if subjs == set():
-        return set()
-    #
-    return set(self._spo.keys()) if subjs is None else subjs
+    return jsonld_frame_with_index(self.index, frame)

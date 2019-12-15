@@ -29,4 +29,4 @@ Important assumptions made by this architecture:
 
 '''
 
-from .jsonld import JsonLDDatabase, JsonLDFrame, JsonLDNode
+from .jsonld_oop import JsonLDDatabase, JsonLDFrame, JsonLDNode
