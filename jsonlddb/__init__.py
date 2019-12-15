@@ -173,6 +173,8 @@ class JsonLDFrame:
       for subj in self._db._spo.keys():
         if isIRI(subj):
           yield JsonLDNode(self._db, subj)
+        else:
+          yield subj
     elif '@id' in self._frame:
       yield JsonLDNode(self._db, self._frame['@id'], self._frame)
     else:
