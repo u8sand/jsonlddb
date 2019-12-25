@@ -1,0 +1,205 @@
+import enum
+import itertools
+import functools
+import collections
+import sortedcontainers
+from .chain_set import chain_set_union, chain_set_intersection
+
+@functools.total_ordering
+class RDFTermType(enum.Enum):
+  IRI = 0
+  LITERAL = 1
+  #
+  def __lt__(self, other):
+    return hash(self) < hash(other)
+  #
+  def __hash__(self):
+    if self == RDFTermType.IRI:
+      return 0
+    elif self == RDFTermType.LITERAL:
+      return 1
+
+@functools.total_ordering
+class RDFTerm:
+  def __init__(self, type=None, value=None):
+    self.type = type
+    self.value = value
+  #
+  def __eq__(self, other):
+    return (self.type, hash(type(self.value)), self.value) == (other.type, hash(type(other.value)), other.value)
+  #
+  def __lt__(self, other):
+    return (self.type, hash(type(self.value)), self.value) < (other.type, hash(type(other.value)), other.value)
+  #
+  def __hash__(self):
+    return hash((self.type, self.value))
+
+def isLiteral(v):
+  return type(v) not in [list, dict]
+
+def collapse(v):
+  return v[0] if type(v) == list and len(v) == 1 else v
+
+def force_list(v):
+  return v if type(v) == list else [v]
+
+def canonical_uuid(j):
+  import uuid, json
+  return uuid.uuid5(uuid.UUID('00000000-0000-0000-0000-000000000000'), json.dumps(j))
+
+class defaultdict(dict):
+  ''' A defaultdict that works as anticipated when nested
+  at the cost of potentially constructing empty values while reading.
+
+  https://gist.github.com/u8sand/1b6ae223b6333ab2d9ea37fa67094a98
+  '''
+  def __init__(self, _default, **kwargs):
+    super().__init__(**kwargs)
+    self._default = _default
+  #
+  def __getitem__(self, k):
+    try:
+      return super().__getitem__(k)
+    except:
+      super().__setitem__(k, self._default())
+    return super().__getitem__(k)
+
+def ds(**kwargs):
+  return defaultdict(set, **kwargs)
+
+def dds(**kwargs):
+  return defaultdict(ds, **kwargs)
+
+class JsonLDIndex:
+  def __init__(self, spo=dds(), pos=dds()):
+    self.spo = spo
+    self.pos = pos
+
+def jsonld_to_triples(jsonld):
+  Q = [
+    ([], None, obj)
+    for obj in (jsonld if type(jsonld) == list else [jsonld])
+  ]
+  while Q:
+    subjs, pred, obj = Q.pop()
+    assert type(obj) == dict, 'JSON-LD Formatting error'
+    # obtain distinguishing literals for this node
+    node = [
+      (p, o)
+      for p, O in obj.items()
+      if p != '@id'
+      for o in (O if type(O) == list else [O])
+      if isLiteral(o)
+    ]
+    # construct a canonical id for the node using the distinguishing literals
+    existing_id = obj.get('@id')
+    node_id = RDFTerm(
+      RDFTermType.IRI,
+      existing_id if existing_id is not None else canonical_uuid(node)
+    )
+    # register this relationship to its parent(s)
+    if subjs:
+      subj = subjs[-1]
+      yield (subj, pred, node_id)
+      yield (subj, '*', node_id)
+      for s in subjs:
+        yield (s, '**', node_id)
+    #
+    # register this node's literals
+    for p, o in node:
+      yield (node_id, p, RDFTerm(RDFTermType.LITERAL, o))
+    # add the remaining object relationships to Q to be processed in future iterations
+    Q += [
+      (subjs + [node_id], p, o)
+      for p, O in obj.items()
+      for o in (O if type(O) == list else [O])
+      if not isLiteral(o)
+    ]
+
+def jsonld_index_insert_triples(triples, index = JsonLDIndex()):
+  for subj, pred, obj in triples:
+    index.spo[subj][pred].add(obj)
+    index.spo[obj]['~'+pred].add(subj)
+    index.pos[pred][obj].add(subj)
+    index.pos['~'+pred][subj].add(obj)
+  return index
+
+def jsonld_index_remove_triples(triples, index = JsonLDIndex()):
+  for subj, pred, obj in triples:
+    index.spo[subj][pred].remove(obj)
+    index.spo[obj]['~'+pred].remove(subj)
+    index.pos[pred][obj].remove(subj)
+    index.pos['~'+pred][subj].remove(obj)
+  return index
+
+def pathset_from_object(obj):
+  Q = [
+    ([p], o)
+    for p, O in obj.items()
+    for o in force_list(O)
+  ]
+  while Q:
+    path, obj = Q.pop()
+    if type(obj) == dict and obj:
+      Q += [
+        (path + [p], o)
+        for p, O in obj.items()
+        for o in force_list(O)
+      ]
+    else:
+      yield path, obj
+
+def jsonld_resolve_frame_object(index, pred, obj):
+  if pred in ['@id', '~@id']:
+    subj = RDFTerm(RDFTermType.IRI, obj)
+    return set([subj]) if subj in index.spo else set()
+  if obj == {}:
+    return chain_set_union(index.pos[pred].values())
+  else:
+    return index.pos[pred][RDFTerm(RDFTermType.LITERAL, obj)]
+
+
+def jsonld_frame_with_index(index, frame):
+  '''
+  This is the core of everything--the helper classes simply build off of
+    frames.
+  
+  Here we use lambda for lazy evaluation; the result is that this function actually
+   just prepares the necessary lookups, but we ultimately compute all intersections
+   at the same time -- this should help with reducing the amount of memory
+   being used as well as helping with CPU optimizations.
+
+  TODO: Allow "options" with [] notation
+  TODO: allow specifying minimal vs maximal subsets (currently always minimal)
+  '''
+  print('jsonld_frame', frame)
+  # S looks like: (sizeof(path), path): lazy[possible_subjects]
+  # sizeof(path) is what orders our dict.
+  S = sortedcontainers.SortedDict()
+  for path, obj in pathset_from_object(frame):
+    key = (len(path[:-1]), tuple(path[:-1]))
+    if S.get(key) is None:
+      S[key] = lambda _p=path[-1], _o=obj: jsonld_resolve_frame_object(index, _p, _o)
+    else:
+      S[key] = lambda _p=path[-1], _o=obj, _s=S[key]: chain_set_intersection((_s(), jsonld_resolve_frame_object(index, _p, _o)))
+  # Each iteration we pop one of the largest paths
+  #  and intersect it with its parent, Once we get an
+  #  empty path length we're done.
+  while S:
+    (L, path), subjs = S.popitem()
+    if L == 0:
+      return subjs()
+    parent = tuple(path[:-1])
+    pred = path[-1]
+    #
+    s = lambda _s=subjs, _p=pred: chain_set_union(
+      index.pos[_p][o]
+      for o in _s()
+    )
+    if S.get(parent) is None:
+      S[(L-1, parent)] = s
+    else:
+      S[(L-1, parent)] = lambda _s=S[(L-1, parent)], __s=s: chain_set_intersection((_s(), __s()))
+  # If we got here, then S is empty, meaning the frame is empty,
+  #  meaning we actually just want all subjects.
+  return index.spo.keys()

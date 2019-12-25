@@ -29,4 +29,7 @@ Important assumptions made by this architecture:
 
 '''
 
-from .jsonld_oop import JsonLDDatabase, JsonLDFrame, JsonLDNode
+from . import core, generate, oop, optimization, table
+JsonLDDatabase = oop.JsonLDDatabase
+from_df = table.from_df
+to_dfs = table.to_dfs
