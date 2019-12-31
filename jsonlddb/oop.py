@@ -34,10 +34,10 @@ class JsonLDNode:
       }) if self._depth else ellipse
   #
   def __repr__(self):
-    return pformat(self._repr(3))
+    return pformat(self._repr())
   #
   def __str__(self):
-    return str(self._repr(3))
+    return str(self._repr())
   #
   def __getitem__(self, pred):
     if isLiteral(pred):

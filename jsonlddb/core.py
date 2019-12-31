@@ -180,7 +180,6 @@ def jsonld_frame_with_index(index, frame):
   TODO: Allow "options" with [] notation
   TODO: allow specifying minimal vs maximal subsets (currently always minimal)
   '''
-  print('jsonld_frame', frame)
   # S looks like: (sizeof(path), path): lazy[possible_subjects]
   # sizeof(path) is what orders our dict.
   S = sortedcontainers.SortedDict()
