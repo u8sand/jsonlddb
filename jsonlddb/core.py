@@ -1,4 +1,5 @@
 import enum
+import logging
 import itertools
 import functools
 import collections
@@ -47,31 +48,23 @@ def canonical_uuid(j):
   import uuid, json
   return uuid.uuid5(uuid.UUID('00000000-0000-0000-0000-000000000000'), json.dumps(j))
 
-class defaultdict(dict):
-  ''' A defaultdict that works as anticipated when nested
-  at the cost of potentially constructing empty values while reading.
+def dds_insert(d, s, p, o):
+  if d.get(s) is None:
+    d[s] = {}
+  if d[s].get(p) is None:
+    d[s][p] = set()
+  d[s][p].add(o)
 
-  https://gist.github.com/u8sand/1b6ae223b6333ab2d9ea37fa67094a98
-  '''
-  def __init__(self, _default, **kwargs):
-    super().__init__(**kwargs)
-    self._default = _default
-  #
-  def __getitem__(self, k):
-    try:
-      return super().__getitem__(k)
-    except:
-      super().__setitem__(k, self._default())
-    return super().__getitem__(k)
-
-def ds(**kwargs):
-  return defaultdict(set, **kwargs)
-
-def dds(**kwargs):
-  return defaultdict(ds, **kwargs)
+def dds_remove(d, s, p, o):
+  if d.get(s) is not None and d[s].get(p) is not None:
+    d[s][p].remove(o)
+    if not d[s][p]:
+      del d[s][p]
+      if not d[s]:
+        del d[s]
 
 class JsonLDIndex:
-  def __init__(self, spo=dds(), pos=dds()):
+  def __init__(self, spo={}, pos={}):
     self.spo = spo
     self.pos = pos
 
@@ -118,18 +111,20 @@ def jsonld_to_triples(jsonld):
 
 def jsonld_index_insert_triples(triples, index = JsonLDIndex()):
   for subj, pred, obj in triples:
-    index.spo[subj][pred].add(obj)
-    index.spo[obj]['~'+pred].add(subj)
-    index.pos[pred][obj].add(subj)
-    index.pos['~'+pred][subj].add(obj)
+    dds_insert(index.spo, subj, pred, obj)
+    dds_insert(index.spo, obj, '~'+pred, subj)
+    dds_insert(index.pos, pred, obj, subj)
+    dds_insert(index.pos, '~'+pred, subj, obj)
+  #
   return index
 
 def jsonld_index_remove_triples(triples, index = JsonLDIndex()):
   for subj, pred, obj in triples:
-    index.spo[subj][pred].remove(obj)
-    index.spo[obj]['~'+pred].remove(subj)
-    index.pos[pred][obj].remove(subj)
-    index.pos['~'+pred][subj].remove(obj)
+    dds_remove(index.spo, subj, pred, obj)
+    dds_remove(index.spo, obj, '~'+pred, subj)
+    dds_remove(index.pos, pred, obj, subj)
+    dds_remove(index.pos, '~'+pred, subj, obj)
+  #
   return index
 
 def pathset_from_object(obj):
@@ -154,9 +149,9 @@ def jsonld_resolve_frame_object(index, pred, obj):
     subj = RDFTerm(RDFTermType.IRI, obj)
     return set([subj]) if subj in index.spo else set()
   if obj == {}:
-    return chain_set_union(index.pos[pred].values())
+    return chain_set_union(index.pos.get(pred, {}).values())
   else:
-    return index.pos[pred][RDFTerm(RDFTermType.LITERAL, obj)]
+    return index.pos.get(pred, {}).get(RDFTerm(RDFTermType.LITERAL, obj), set())
 
 
 def jsonld_frame_with_index(index, frame):
@@ -193,7 +188,7 @@ def jsonld_frame_with_index(index, frame):
     pred = path[-1]
     #
     s = lambda _s=subjs, _p=pred: chain_set_union(
-      index.pos[_p][o]
+      index.pos.get(_p, {}).get(o, set())
       for o in _s()
     )
     if S.get(parent) is None:

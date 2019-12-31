@@ -53,7 +53,7 @@ class JsonLDNode:
   def keys(self):
     return set(
       pred
-      for pred in self._db.index.spo[RDFTerm(RDFTermType.IRI, self._subj)].keys()
+      for pred in self._db.index.spo.get(RDFTerm(RDFTermType.IRI, self._subj), {}).keys()
       if pred not in ['*', '**'] and not pred.startswith('~')
     )
   #
