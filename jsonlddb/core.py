@@ -75,7 +75,20 @@ def jsonld_to_triples(jsonld):
   ]
   while Q:
     subjs, pred, obj = Q.pop()
-    assert type(obj) == dict, 'JSON-LD Formatting error'
+    if type(obj) != dict:
+      if type(obj) == list:
+        logging.warn('JSON-LD Formatting error, recovering by flattening list')
+        Q += [
+          (subjs, pred, o)
+          for o in obj
+        ]
+        continue
+      else:
+        raise Exception(
+          'Unrecoverable JSON-LD Formatting error, received type {}'.format(
+            type(obj)
+          )
+        )
     # obtain distinguishing literals for this node
     node = [
       (p, o)
