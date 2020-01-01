@@ -29,7 +29,7 @@ class JsonLDNode:
         pred: objs._repr() if isinstance(objs, JsonLDFrame) else objs
         for pred, objs in itertools.islice(
           self.items(),
-          self._skip, self._skip + self._limit
+          self._skip, None if self._limit is None else (self._skip + self._limit)
         )
       }) if self._depth else ellipse
   #
@@ -45,10 +45,10 @@ class JsonLDNode:
         return self._subj
       else:
         # Find all objects that are children of this frame + predicate
-        return JsonLDFrame(self._db, frame={ '~' + pred: self._frame }, skip=self._skip, limit=self._limit, depth=self._depth - 1)
+        return JsonLDFrame(self._db, frame={ '~' + pred: self._frame }, depth=self._depth - 1)
     else:
       # Add more things to the frame
-      return JsonLDFrame(self._db, frame=dict(self._frame, **pred), skip=self._skip, limit=self._limit, depth=self._depth - 1)
+      return JsonLDFrame(self._db, frame=dict(self._frame, **pred), depth=self._depth - 1)
   #
   def keys(self):
     return set(
@@ -67,11 +67,20 @@ class JsonLDNode:
           frame={
             '~' + pred: self._frame,
           },
-          skip=self._skip, limit=self._limit, depth=self._depth - 1
+          depth=self._depth - 1
         )
   #
   def items(self):
     return zip(self.keys(), self.values())
+  #
+  def skip(self, skip):
+    return JsonLDNode(self._db, self._subj, self._frame, skip, self._limit, self._depth)
+  #
+  def limit(self, limit):
+    return JsonLDNode(self._db, self._subj, self._frame, self._skip, limit, self._depth)
+  #
+  def depth(self, depth):
+    return JsonLDNode(self._db, self._subj, self._frame, self._skip, self._limit, depth)
 
 class JsonLDFrame:
   ''' Represent a frame, providing the ability to observe and interact
@@ -89,7 +98,9 @@ class JsonLDFrame:
       return ellipse
     vals = [
       obj._repr() if getattr(obj, '_repr', None) is not None else obj
-      for obj in itertools.islice(self, self._skip, self._skip + self._limit)
+      for obj in itertools.islice(
+        self, self._skip, None if self._limit is None else (self._skip + self._limit)
+      )
     ]
     if len(vals) == 1:
       return vals[0]
@@ -111,16 +122,23 @@ class JsonLDFrame:
     return str(self._repr())
   #
   def __getitem__(self, pred):
-    if isLiteral(pred):
-      return JsonLDFrame(self._db, frame={'~' + pred: self._frame}, skip=self._skip, limit=self._limit, depth=self._depth)
+    if type(pred) == str:
+      return JsonLDFrame(self._db, frame={'~' + pred: self._frame}, depth=self._depth)
+    elif type(pred) == int:
+      return next(iter(itertools.islice(self, pred, pred + 1)))
+    elif type(pred) == slice:
+      if pred.step is None or pred.step == 1 and (pred.start is None or pred.stop is None or pred.start < pred.stop):
+        return self.skip(pred.start).limit(None if pred.stop is None else pred.stop - pred.start)
+      else:
+        return itertools.islice(self, pred.start, pred.stop, pred.step)
     else:
       # Add more things to the frame
-      return JsonLDFrame(self._db, frame=dict(self._frame, **pred), skip=self._skip, limit=self._limit, depth=self._depth)
+      return JsonLDFrame(self._db, frame=dict(self._frame, **pred), depth=self._depth)
   #
   def __iter__(self):
     for subj in self._db.frame(self._frame):
       if subj.type == RDFTermType.IRI:
-        yield JsonLDNode(self._db, subj.value, frame=self._frame, skip=self._skip, limit=self._limit, depth=self._depth - 1)
+        yield JsonLDNode(self._db, subj.value, frame=self._frame, depth=self._depth - 1)
       else:
         yield subj.value
   #
