@@ -77,7 +77,7 @@ def jsonld_to_triples(jsonld):
     subjs, pred, obj = Q.pop()
     if type(obj) != dict:
       if type(obj) == list:
-        logging.warn('JSON-LD Formatting error, recovering by flattening list')
+          logging.warn('JSON-LD Formatting error, recovering by flattening list')
         Q += [
           (subjs, pred, o)
           for o in obj
@@ -107,9 +107,9 @@ def jsonld_to_triples(jsonld):
     if subjs:
       subj = subjs[-1]
       yield (subj, pred, node_id)
-      yield (subj, '*', node_id)
-      for s in subjs:
-        yield (s, '**', node_id)
+      # yield (subj, '*', node_id)
+      # for s in subjs:
+      #   yield (s, '**', node_id)
     #
     # register this node's literals
     for p, o in node:
@@ -125,7 +125,7 @@ def jsonld_to_triples(jsonld):
 def jsonld_index_insert_triples(triples, index = JsonLDIndex()):
   for subj, pred, obj in triples:
     dds_insert(index.spo, subj, pred, obj)
-    dds_insert(index.spo, obj, '~'+pred, subj)
+    # dds_insert(index.spo, obj, '~'+pred, subj)
     dds_insert(index.pos, pred, obj, subj)
     dds_insert(index.pos, '~'+pred, subj, obj)
   #
@@ -134,7 +134,7 @@ def jsonld_index_insert_triples(triples, index = JsonLDIndex()):
 def jsonld_index_remove_triples(triples, index = JsonLDIndex()):
   for subj, pred, obj in triples:
     dds_remove(index.spo, subj, pred, obj)
-    dds_remove(index.spo, obj, '~'+pred, subj)
+    # dds_remove(index.spo, obj, '~'+pred, subj)
     dds_remove(index.pos, pred, obj, subj)
     dds_remove(index.pos, '~'+pred, subj, obj)
   #
