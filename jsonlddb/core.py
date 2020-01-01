@@ -73,11 +73,14 @@ def jsonld_to_triples(jsonld):
     ([], None, obj)
     for obj in (jsonld if type(jsonld) == list else [jsonld])
   ]
+  warned = False
   while Q:
     subjs, pred, obj = Q.pop()
     if type(obj) != dict:
       if type(obj) == list:
+        if not warned:
           logging.warn('JSON-LD Formatting error, recovering by flattening list')
+          warned = True
         Q += [
           (subjs, pred, o)
           for o in obj
