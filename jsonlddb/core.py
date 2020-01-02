@@ -176,7 +176,7 @@ def jsonld_frame_with_index(index, frame):
       index.pos.get(_p, {}).get(o, set())
       for o in _s()
     )
-    if S.get(parent) is None:
+    if S.get((L-1, parent)) is None:
       S[(L-1, parent)] = s
     else:
       S[(L-1, parent)] = lambda _s=S[(L-1, parent)], __s=s: chain_set_intersection((_s(), __s()))
