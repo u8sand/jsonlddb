@@ -14,6 +14,9 @@ class RDFTermType(enum.Enum):
       return 0
     elif self == RDFTermType.LITERAL:
       return 1
+  #
+  def __repr__(self):
+    return 'IRI' if self == RDFTermType.IRI else 'LITERAL'
 
 @functools.total_ordering
 class RDFTerm:
@@ -29,3 +32,6 @@ class RDFTerm:
   #
   def __hash__(self):
     return hash((self.type, self.value))
+  #
+  def __repr__(self):
+    return '{}:{}'.format(repr(self.type), repr(self.value))
