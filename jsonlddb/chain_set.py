@@ -10,35 +10,52 @@ def is_set(v):
 
 def chain_set_union(generators):
   # Process sets first
-  S_ = set()
+  S = set()
   iterators = collections.deque()
   for gen in generators:
-    if isinstance(gen, set):
+    if is_set(gen):
       # Yield 'em as we get 'em
-      for s in gen - S_:
+      for s in gen - S:
         yield s
-      S_ |= gen
+      S |= gen
     else:
       iterators.append(iter(gen))
   # No actual iterators? we're already done
   if not iterators:
     return
   # Otherwise return a generator which yields the current elements
-  def G():
-    S = S_
-    # Proceed with yielding additional union elements
-    while iterators:
-      it = iterators.popleft()
-      try:
-        v = next(it)
-        if v not in S:
-          yield v
-          S.add(v)
-        iterators.append(it)
-      except StopIteration:
-        pass
-  #
-  return G()
+  while iterators:
+    it = iterators.popleft()
+    try:
+      v = next(it)
+      if v not in S:
+        yield v
+        S.add(v)
+      iterators.append(it)
+    except StopIteration:
+      pass
+
+def chain_set_intersection_from_iterable(iterators, S={}, impossible=set()):
+  n_iterators = len(iterators)
+  S = {}
+  while iterators:
+    i, it = iterators.popleft()
+    try:
+      v = next(it)
+      # only if we know it's not impossible
+      if v not in impossible:
+        # create a new element if it doesn't yet exist
+        if S.get(v) is None:
+          S[v] = set()
+        # has this iterator not registered this element yet?
+        if i not in S[v]:
+          S[v].add(i)
+          # all generators registered--we can yield it
+          if len(S[v]) == n_iterators:
+            yield v
+      iterators.append((i, it))
+    except StopIteration:
+      pass
 
 def chain_set_intersection(generators):
   # Process sets first
@@ -49,7 +66,7 @@ def chain_set_intersection(generators):
   iterators = collections.deque()
   # Shortest to largest will be the most efficient way to process these
   for gen in generators:
-    if isinstance(gen, set):
+    if is_set(gen):
       if S_ is None:
         S_ = gen
       else:
@@ -63,8 +80,14 @@ def chain_set_intersection(generators):
   if not iterators:
     return S_
   # Otherwise proceed with checking generators
-  def G():
+  if S_:
+    n_iterators = len(iterators) + 1
+    S = {s: {-1} for s in S_}
+  else:
+    n_iterators = len(iterators)
     S = {}
+  #
+  def G():
     while iterators:
       i, it = iterators.popleft()
       try:
@@ -78,7 +101,7 @@ def chain_set_intersection(generators):
           if i not in S[v]:
             S[v].add(i)
             # all generators registered--we can yield it
-            if len(S[v]) == len(generators):
+            if len(S[v]) == n_iterators:
               yield v
         iterators.append((i, it))
       except StopIteration:
