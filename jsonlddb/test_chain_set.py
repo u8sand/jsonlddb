@@ -1,4 +1,4 @@
-from .chain_set import chain_set_union, chain_set_intersection
+from jsonlddb.chain_set import chain_set_union, chain_set_intersection
 
 def assert_chain_set_eq(gen0, gen1):
   V0 = {}

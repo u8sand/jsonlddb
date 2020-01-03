@@ -1,6 +1,6 @@
 from nose.tools import assert_raises
-from .core import jsonld_frame_with_index, jsonld_index_insert_triples, jsonld_to_triples, jsonld_index_remove_triples, JsonLDIndex
-from .rdf import RDFTerm, RDFTermType
+from jsonlddb.core import jsonld_frame_with_index, jsonld_index_insert_triples, jsonld_to_triples, jsonld_index_remove_triples, JsonLDIndex
+from jsonlddb.rdf import RDFTerm, RDFTermType
 
 def test_jsonld_triple_conversion():
   # Recoverable double list success
