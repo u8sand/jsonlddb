@@ -2,8 +2,8 @@ import enum
 import logging
 import collections
 import sortedcontainers
-from .chain_set import chain_set_union, chain_set_intersection
-from .rdf import RDFTerm, RDFTermType
+from jsonlddb.chain_set import chain_set_union, chain_set_intersection
+from jsonlddb.rdf import RDFTerm, RDFTermType
 
 def isLiteral(v):
   return type(v) not in [list, dict]
@@ -64,17 +64,17 @@ def jsonld_to_triples(jsonld):
         )
     # obtain distinguishing literals for this node
     node = [
-      (p, o)
-      for p, O in obj.items()
-      if p != '@id'
-      for o in (O if type(O) == list else [O])
-      if isLiteral(o)
+        (p, o)
+        for p, O in obj.items()
+        if p != '@id'
+        for o in (O if type(O) == list else [O])
+        if isLiteral(o)
     ]
     # construct a canonical id for the node using the distinguishing literals
     existing_id = obj.get('@id')
     node_id = RDFTerm(
-      RDFTermType.IRI,
-      existing_id if existing_id is not None else canonical_uuid(node)
+        RDFTermType.IRI,
+        existing_id if existing_id is not None else canonical_uuid(node)
     )
     # register this relationship to its parent(s)
     if subjs:
@@ -89,10 +89,10 @@ def jsonld_to_triples(jsonld):
       yield (node_id, p, RDFTerm(RDFTermType.LITERAL, o))
     # add the remaining object relationships to Q to be processed in future iterations
     Q += [
-      (subjs + [node_id], p, o)
-      for p, O in obj.items()
-      for o in (O if type(O) == list else [O])
-      if not isLiteral(o)
+        (subjs + [node_id], p, o)
+        for p, O in obj.items()
+        for o in (O if type(O) == list else [O])
+        if not isLiteral(o)
     ]
 
 def jsonld_index_insert_triples(index, triples):

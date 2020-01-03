@@ -1,6 +1,6 @@
 import itertools
 from pprint import pformat
-from .core import *
+from jsonlddb.core import *
 
 class Ellipse:
   def __repr__(self):
