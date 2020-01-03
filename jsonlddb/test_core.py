@@ -1,5 +1,5 @@
 from nose.tools import assert_raises
-from .core import jsonld_frame_with_index, jsonld_index_insert_triples, jsonld_to_triples, jsonld_index_remove_triples
+from .core import jsonld_frame_with_index, jsonld_index_insert_triples, jsonld_to_triples, jsonld_index_remove_triples, JsonLDIndex
 from .rdf import RDFTerm, RDFTermType
 
 def test_jsonld_triple_conversion():
@@ -66,7 +66,7 @@ def test_jsonld_frame_with_index():
       'model': 'X',
     },
   ]
-  index = jsonld_index_insert_triples(jsonld_to_triples(jsonld))
+  index = jsonld_index_insert_triples(JsonLDIndex(), jsonld_to_triples(jsonld))
 
   # Empty query should return all subjects
   query = {}
@@ -94,11 +94,11 @@ def test_jsonld_frame_with_index():
   assert result == expected, result
 
   # Move car ownership of person 3 to person 2
-  index = jsonld_index_remove_triples(jsonld_to_triples({
+  index = jsonld_index_remove_triples(index, jsonld_to_triples({
     '@id': '3',
     'owns': { '@id': '5' }
   }))
-  index = jsonld_index_insert_triples(jsonld_to_triples({
+  index = jsonld_index_insert_triples(index, jsonld_to_triples({
     '@id': '2',
     'owns': { '@id': '5' }
   }))

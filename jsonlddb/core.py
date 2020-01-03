@@ -34,9 +34,9 @@ def dds_remove(d, s, p, o):
         del d[s]
 
 class JsonLDIndex:
-  def __init__(self, spo={}, pos={}):
-    self.spo = spo
-    self.pos = pos
+  def __init__(self, spo=None, pos=None):
+    self.spo = {} if spo is None else spo
+    self.pos = {} if pos is None else pos
 
 def jsonld_to_triples(jsonld):
   Q = [
@@ -95,7 +95,7 @@ def jsonld_to_triples(jsonld):
       if not isLiteral(o)
     ]
 
-def jsonld_index_insert_triples(triples, index = JsonLDIndex()):
+def jsonld_index_insert_triples(index, triples):
   for subj, pred, obj in triples:
     dds_insert(index.spo, subj, pred, obj)
     # dds_insert(index.spo, obj, '~'+pred, subj)
@@ -104,7 +104,7 @@ def jsonld_index_insert_triples(triples, index = JsonLDIndex()):
   #
   return index
 
-def jsonld_index_remove_triples(triples, index = JsonLDIndex()):
+def jsonld_index_remove_triples(index, triples):
   for subj, pred, obj in triples:
     dds_remove(index.spo, subj, pred, obj)
     # dds_remove(index.spo, obj, '~'+pred, subj)

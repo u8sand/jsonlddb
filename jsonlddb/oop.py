@@ -161,11 +161,11 @@ class JsonLDDatabase(JsonLDFrame):
     return self
   #
   def update_triples(self, triples):
-    jsonld_index_insert_triples(triples, index=self.index)
+    jsonld_index_insert_triples(self.index, triples)
     return self
   #
   def remove_triples(self, triples):
-    jsonld_index_remove_triples(triples, index=self.index)
+    jsonld_index_remove_triples(self.index, triples)
     return self
   #
   def frame(self, frame):
