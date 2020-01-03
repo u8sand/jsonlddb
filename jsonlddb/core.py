@@ -1,7 +1,9 @@
+import uuid
 import enum
 import logging
 import collections
 import sortedcontainers
+from jsonlddb import json
 from jsonlddb.chain_set import chain_set_union, chain_set_intersection
 from jsonlddb.rdf import RDFTerm, RDFTermType
 
@@ -15,7 +17,6 @@ def force_list(v):
   return v if type(v) == list else [v]
 
 def canonical_uuid(j):
-  import uuid, json
   return uuid.uuid5(uuid.UUID('00000000-0000-0000-0000-000000000000'), json.dumps(j))
 
 def dds_insert(d, s, p, o):
@@ -63,18 +64,24 @@ def jsonld_to_triples(jsonld):
           )
         )
     # obtain distinguishing literals for this node
-    node = [
-        (p, o)
-        for p, O in obj.items()
-        if p != '@id'
-        for o in (O if type(O) == list else [O])
-        if isLiteral(o)
-    ]
+    existing_id = None
+    literals = []
+    relationships = []
+    for p, O in obj.items():
+      for o in force_list(O):
+        if p == '@id':
+          assert existing_id is None, 'Only one @id is acceptable'
+          existing_id = o
+        elif isLiteral(o):
+          literals.append((p, o))
+        elif type(o) == dict and list(o.keys()) == ['@value']: # Force treat object as literal
+          literals.append((p, json.JSON(o['@value'])))
+        else:
+          relationships.append((p, o))
     # construct a canonical id for the node using the distinguishing literals
-    existing_id = obj.get('@id')
     node_id = RDFTerm(
-        RDFTermType.IRI,
-        existing_id if existing_id is not None else canonical_uuid(node)
+      RDFTermType.IRI,
+      existing_id if existing_id is not None else canonical_uuid(literals)
     )
     # register this relationship to its parent(s)
     if subjs:
@@ -85,14 +92,12 @@ def jsonld_to_triples(jsonld):
       #   yield (s, '**', node_id)
     #
     # register this node's literals
-    for p, o in node:
+    for p, o in literals:
       yield (node_id, p, RDFTerm(RDFTermType.LITERAL, o))
     # add the remaining object relationships to Q to be processed in future iterations
     Q += [
-        (subjs + [node_id], p, o)
-        for p, O in obj.items()
-        for o in (O if type(O) == list else [O])
-        if not isLiteral(o)
+      (subjs + [node_id], p, o)
+      for p, o in relationships
     ]
 
 def jsonld_index_insert_triples(index, triples):
