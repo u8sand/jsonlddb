@@ -11,9 +11,6 @@ from jsonlddb.rdf import RDFTerm, RDFTermType
 def isLiteral(v):
   return type(v) not in [list, dict]
 
-def collapse(v):
-  return v[0] if type(v) == list and len(v) == 1 else v
-
 def force_list(v):
   return v if type(v) == list else [v]
 

@@ -35,28 +35,6 @@ def chain_set_union(generators):
     except StopIteration:
       pass
 
-def chain_set_intersection_from_iterable(iterators, S={}, impossible=set()):
-  n_iterators = len(iterators)
-  S = {}
-  while iterators:
-    i, it = iterators.popleft()
-    try:
-      v = next(it)
-      # only if we know it's not impossible
-      if v not in impossible:
-        # create a new element if it doesn't yet exist
-        if S.get(v) is None:
-          S[v] = set()
-        # has this iterator not registered this element yet?
-        if i not in S[v]:
-          S[v].add(i)
-          # all generators registered--we can yield it
-          if len(S[v]) == n_iterators:
-            yield v
-      iterators.append((i, it))
-    except StopIteration:
-      pass
-
 def chain_set_intersection(generators):
   # Process sets first
   S_ = None

@@ -1,13 +1,8 @@
 import enum
-import functools
 
-@functools.total_ordering
 class RDFTermType(enum.Enum):
   IRI = 0
   LITERAL = 1
-  #
-  def __lt__(self, other):
-    return hash(self) < hash(other)
   #
   def __hash__(self):
     if self == RDFTermType.IRI:
@@ -18,7 +13,6 @@ class RDFTermType(enum.Enum):
   def __repr__(self):
     return 'IRI' if self == RDFTermType.IRI else 'LITERAL'
 
-@functools.total_ordering
 class RDFTerm:
   def __init__(self, type=None, value=None):
     self.type = type
@@ -26,9 +20,6 @@ class RDFTerm:
   #
   def __eq__(self, other):
     return (self.type, hash(type(self.value)), self.value) == (other.type, hash(type(other.value)), other.value)
-  #
-  def __lt__(self, other):
-    return (self.type, hash(type(self.value)), self.value) < (other.type, hash(type(other.value)), other.value)
   #
   def __hash__(self):
     return hash((self.type, self.value))
