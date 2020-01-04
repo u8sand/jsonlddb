@@ -1,6 +1,8 @@
 import itertools
 from pprint import pformat
-from jsonlddb.core import *
+from jsonlddb.core import jsonld_frame_with_multi_index, jsonld_to_triples, isLiteral
+from jsonlddb.index import JsonLDIndex
+from jsonlddb.rdf import RDFTerm, RDFTermType
 
 class Ellipse:
   def __repr__(self):
@@ -249,9 +251,9 @@ class JsonLDDatabase(JsonLDFrame):
     return self
   #
   def update_triples(self, triples):
-    jsonld_index_insert_triples(self.index, triples)
+    self.index.insert_triples(triples)
     return self
   #
   def remove_triples(self, triples):
-    jsonld_index_remove_triples(self.index, triples)
+    self.index.remove_triples(triples)
     return self

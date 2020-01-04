@@ -5,6 +5,7 @@ import collections
 import sortedcontainers
 from jsonlddb import json
 from jsonlddb.chain_set import chain_set_union, chain_set_intersection
+from jsonlddb.index import JsonLDIndex
 from jsonlddb.rdf import RDFTerm, RDFTermType
 
 def isLiteral(v):
@@ -18,26 +19,6 @@ def force_list(v):
 
 def canonical_uuid(j):
   return uuid.uuid5(uuid.UUID('00000000-0000-0000-0000-000000000000'), json.dumps(j))
-
-def dds_insert(d, s, p, o):
-  if d.get(s) is None:
-    d[s] = {}
-  if d[s].get(p) is None:
-    d[s][p] = set()
-  d[s][p].add(o)
-
-def dds_remove(d, s, p, o):
-  if d.get(s) is not None and d[s].get(p) is not None:
-    d[s][p].remove(o)
-    if not d[s][p]:
-      del d[s][p]
-      if not d[s]:
-        del d[s]
-
-class JsonLDIndex:
-  def __init__(self, spo=None, pos=None):
-    self.spo = {} if spo is None else spo
-    self.pos = {} if pos is None else pos
 
 def jsonld_to_triples(jsonld):
   Q = [
@@ -99,24 +80,6 @@ def jsonld_to_triples(jsonld):
       (subjs + [node_id], p, o)
       for p, o in relationships
     ]
-
-def jsonld_index_insert_triples(index, triples):
-  for subj, pred, obj in triples:
-    dds_insert(index.spo, subj, pred, obj)
-    # dds_insert(index.spo, obj, '~'+pred, subj)
-    dds_insert(index.pos, pred, obj, subj)
-    dds_insert(index.pos, '~'+pred, subj, obj)
-  #
-  return index
-
-def jsonld_index_remove_triples(index, triples):
-  for subj, pred, obj in triples:
-    dds_remove(index.spo, subj, pred, obj)
-    # dds_remove(index.spo, obj, '~'+pred, subj)
-    dds_remove(index.pos, pred, obj, subj)
-    dds_remove(index.pos, '~'+pred, subj, obj)
-  #
-  return index
 
 def pathset_from_object(obj):
   Q = [
