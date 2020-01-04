@@ -184,15 +184,15 @@ class JsonLDFrame:
   #
   def __iter__(self):
     for subj in self.frame(self._frame):
-      if subj.type == RDFTermType.IRI:
+      if subj.type == RDFTermType.LITERAL or '~@id' in self._frame:
+        yield subj.value
+      else:
         yield JsonLDNode(
           self._db, subj.value,
           frame=self._frame,
           depth=self._depth,
           additional=self._additional,
         )
-      else:
-        yield subj.value
   #
   def skip(self, skip):
     return JsonLDFrame(
@@ -238,7 +238,7 @@ class JsonLDFrame:
       [
         db.index
         for db in ([self._db] + self._additional)
-      ], frame
+      ], frame.get('~@id', frame)
     )
 
 class JsonLDDatabase(JsonLDFrame):
@@ -252,6 +252,10 @@ class JsonLDDatabase(JsonLDFrame):
   #
   def update_triples(self, triples):
     self.index.insert_triples(triples)
+    return self
+  #
+  def remove(self, jsonld):
+    self.remove_triples(jsonld_to_triples(jsonld))
     return self
   #
   def remove_triples(self, triples):

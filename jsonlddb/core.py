@@ -97,9 +97,9 @@ def pathset_from_object(obj):
       yield path, obj
 
 def jsonld_resolve_frame_object_with_multi_index(multi_index, pred, obj):
-  if pred in ['@id', '~@id']:
+  if pred == '@id':
     subj = RDFTerm(RDFTermType.IRI, obj)
-    return set([subj]) if any(subj in index.spo for index in multi_index) else set()
+    return {subj} if any(subj in index.spo for index in multi_index) else set()
   if obj == {}:
     return chain_set_union(subjs for index in multi_index for subjs in index.pos.get(pred, {}).values())
   else:
