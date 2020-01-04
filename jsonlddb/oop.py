@@ -13,13 +13,14 @@ class JsonLDNode:
   ''' Represents a single node, providing the ability to observe and interact
   with the complete set of all relationships to this node abiding by the frame.
   '''
-  def __init__(self, db, subj, frame={}, skip=0, limit=10, depth=3):
+  def __init__(self, db, subj, frame={}, skip=0, limit=10, depth=3, additional=[]):
     self._db = db
     self._subj = subj
     self._frame = dict(frame, **{ '@id': subj })
     self._skip = skip
     self._limit = limit
     self._depth = depth
+    self._additional = additional
   #
   def _repr(self):
     if '~@id' in self._frame:
@@ -45,17 +46,18 @@ class JsonLDNode:
         return self._subj
       else:
         # Find all objects that are children of this frame + predicate
-        return JsonLDFrame(self._db, frame={ '~' + pred: self._frame }, depth=self._depth - 1)
+        return JsonLDFrame(self._db, frame={ '~' + pred: self._frame }, depth=self._depth - 1, additional=self._additional)
     else:
       # Add more things to the frame
-      return JsonLDFrame(self._db, frame=dict(self._frame, **pred), depth=self._depth - 1)
+      return JsonLDFrame(self._db, frame=dict(self._frame, **pred), depth=self._depth - 1, additional=self._additional)
   #
   def keys(self):
-    return set(
+    return {
       pred
-      for pred in self._db.index.spo.get(RDFTerm(RDFTermType.IRI, self._subj), {}).keys()
+      for index in [db.index for db in ([self._db] + self._additional)]
+      for pred in index.spo.get(RDFTerm(RDFTermType.IRI, self._subj), {}).keys()
       if pred not in ['*', '**'] and not pred.startswith('~')
-    )
+    }
   #
   def values(self):
     for pred in self.keys():
@@ -67,31 +69,33 @@ class JsonLDNode:
           frame={
             '~' + pred: self._frame,
           },
-          depth=self._depth - 1
+          depth=self._depth - 1,
+          additional=self._additional
         )
   #
   def items(self):
     return zip(self.keys(), self.values())
   #
   def skip(self, skip):
-    return JsonLDNode(self._db, self._subj, self._frame, skip, self._limit, self._depth)
+    return JsonLDNode(self._db, self._subj, self._frame, skip, self._limit, self._depth, additional=self._additional)
   #
   def limit(self, limit):
-    return JsonLDNode(self._db, self._subj, self._frame, self._skip, limit, self._depth)
+    return JsonLDNode(self._db, self._subj, self._frame, self._skip, limit, self._depth, additional=self._additional)
   #
   def depth(self, depth):
-    return JsonLDNode(self._db, self._subj, self._frame, self._skip, self._limit, depth)
+    return JsonLDNode(self._db, self._subj, self._frame, self._skip, self._limit, depth, additional=self._additional)
 
 class JsonLDFrame:
   ''' Represent a frame, providing the ability to observe and interact
   with the complete set of all nodes which satisfy the frame.
   '''
-  def __init__(self, db, frame={}, skip=0, limit=10, depth=4):
+  def __init__(self, db, frame={}, skip=0, limit=10, depth=4, additional=[]):
     self._db = db
     self._frame = frame
     self._skip = skip
     self._limit = limit
     self._depth = depth
+    self._additional = additional
   #
   def _repr(self):
     if not self._depth:
@@ -123,7 +127,7 @@ class JsonLDFrame:
   #
   def __getitem__(self, pred):
     if type(pred) == str:
-      return JsonLDFrame(self._db, frame={'~' + pred: self._frame}, depth=self._depth)
+      return JsonLDFrame(self._db, frame={'~' + pred: self._frame}, depth=self._depth, additional=self._additional)
     elif type(pred) == int:
       return next(iter(itertools.islice(self, pred, pred + 1)))
     elif type(pred) == slice:
@@ -133,23 +137,34 @@ class JsonLDFrame:
         return itertools.islice(self, pred.start, pred.stop, pred.step)
     else:
       # Add more things to the frame
-      return JsonLDFrame(self._db, frame=dict(self._frame, **pred), depth=self._depth)
+      return JsonLDFrame(self._db, frame=dict(self._frame, **pred), depth=self._depth, additional=self._additional)
   #
   def __iter__(self):
-    for subj in self._db.frame(self._frame):
+    for subj in self.frame(self._frame):
       if subj.type == RDFTermType.IRI:
-        yield JsonLDNode(self._db, subj.value, frame=self._frame, depth=self._depth - 1)
+        yield JsonLDNode(self._db, subj.value, frame=self._frame, depth=self._depth, additional=self._additional)
       else:
         yield subj.value
   #
   def skip(self, skip):
-    return JsonLDFrame(self._db, self._frame, skip, self._limit, self._depth)
+    return JsonLDFrame(self._db, self._frame, skip, self._limit, self._depth, additional=self._additional)
   #
   def limit(self, limit):
-    return JsonLDFrame(self._db, self._frame, self._skip, limit, self._depth)
+    return JsonLDFrame(self._db, self._frame, self._skip, limit, self._depth, additional=self._additional)
   #
   def depth(self, depth):
-    return JsonLDFrame(self._db, self._frame, self._skip, self._limit, depth)
+    return JsonLDFrame(self._db, self._frame, self._skip, self._limit, depth, additional=self._additional)
+  #
+  def with_db(self, db):
+    return JsonLDFrame(self._db, self._frame, self._skip, self._limit, self._depth, additional=self._additional + [db])
+  #
+  def frame(self, frame):
+    return jsonld_frame_with_multi_index(
+      [
+        db.index
+        for db in ([self._db] + self._additional)
+      ], frame
+    )
 
 class JsonLDDatabase(JsonLDFrame):
   def __init__(self):
@@ -167,6 +182,3 @@ class JsonLDDatabase(JsonLDFrame):
   def remove_triples(self, triples):
     jsonld_index_remove_triples(self.index, triples)
     return self
-  #
-  def frame(self, frame):
-    return jsonld_frame_with_index(self.index, frame)

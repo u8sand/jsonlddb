@@ -1,5 +1,5 @@
 import pytest
-from jsonlddb.core import jsonld_frame_with_index, jsonld_index_insert_triples, jsonld_to_triples, jsonld_index_remove_triples, JsonLDIndex
+from jsonlddb.core import jsonld_frame_with_multi_index, jsonld_index_insert_triples, jsonld_to_triples, jsonld_index_remove_triples, JsonLDIndex
 from jsonlddb.rdf import RDFTerm, RDFTermType
 
 def test_jsonld_triple_conversion():
@@ -36,7 +36,7 @@ def test_jsonld_triple_conversion():
       'k': {1, 2},
     }))
 
-def test_jsonld_frame_with_index():
+def test_jsonld_frame_with_multi_index():
   jsonld = [
     {
       '@id': '0',
@@ -71,26 +71,26 @@ def test_jsonld_frame_with_index():
   # Empty query should return all subjects
   query = {}
   expected = index.spo.keys()
-  result = set(jsonld_frame_with_index(index, query))
+  result = set(jsonld_frame_with_multi_index([index], query))
   assert result == expected, result
 
   # Show all cars that are owned by a person
   query = {'@type': 'Car', '~owns': { '@type': 'Person' }}
   expected = {RDFTerm(RDFTermType.IRI, '4'), RDFTerm(RDFTermType.IRI, '5')}
-  result = set(jsonld_frame_with_index(index, query))
+  result = set(jsonld_frame_with_multi_index([index], query))
   assert result == expected, result
 
   # Show all cars that are owned by a person who is a child of another person who owns a car
   query = {'@type': 'Car', '~owns': {'@type': 'Person', 'childOf': { '@type': 'Person', 'owns': { '@type': 'Car' } }}}
   expected = {RDFTerm(RDFTermType.IRI, '5')}
-  result = set(jsonld_frame_with_index(index, query))
+  result = set(jsonld_frame_with_multi_index([index], query))
   assert result == expected, result
 
   # Someone who is the spouse of someone who owns something
   #  and is the parent of someone that owns something
   query = { '~spouseOf': { 'owns': {} }, '~childOf': { 'owns': {} } }
   expected = {RDFTerm(RDFTermType.IRI, '1')}
-  result = set(jsonld_frame_with_index(index, query))
+  result = set(jsonld_frame_with_multi_index([index], query))
   assert result == expected, result
 
   # Move car ownership of person 3 to person 2
@@ -105,11 +105,11 @@ def test_jsonld_frame_with_index():
   # Assert that it worked
   query = { '@type': 'Person', 'owns': { '@id': '5' } }
   expected = {RDFTerm(RDFTermType.IRI, '2')}
-  result = set(jsonld_frame_with_index(index, query))
+  result = set(jsonld_frame_with_multi_index([index], query))
   assert result == expected, result
 
   # Query all car models that are owned
   query = { '~model': { '@type': 'Car', '~owns': {} } }
   expected = {RDFTerm(RDFTermType.LITERAL, 'S'), RDFTerm(RDFTermType.LITERAL, '3')}
-  result = set(jsonld_frame_with_index(index, query))
+  result = set(jsonld_frame_with_multi_index([index], query))
   assert result == expected, result

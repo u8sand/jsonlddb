@@ -135,17 +135,19 @@ def pathset_from_object(obj):
     else:
       yield path, obj
 
-def jsonld_resolve_frame_object(index, pred, obj):
+def jsonld_resolve_frame_object_with_multi_index(multi_index, pred, obj):
   if pred in ['@id', '~@id']:
     subj = RDFTerm(RDFTermType.IRI, obj)
-    return set([subj]) if subj in index.spo else set()
+    return set([subj]) if any(subj in index.spo for index in multi_index) else set()
   if obj == {}:
-    return chain_set_union(index.pos.get(pred, {}).values())
+    return chain_set_union(subjs for index in multi_index for subjs in index.pos.get(pred, {}).values())
   else:
-    return index.pos.get(pred, {}).get(RDFTerm(RDFTermType.LITERAL, obj), set())
+    return chain_set_union(
+      index.pos.get(pred, {}).get(RDFTerm(RDFTermType.LITERAL, obj), set())
+      for index in multi_index
+    )
 
-
-def jsonld_frame_with_index(index, frame):
+def jsonld_frame_with_multi_index(multi_index, frame):
   '''
   This is the core of everything--the helper classes simply build off of
     frames.
@@ -164,9 +166,9 @@ def jsonld_frame_with_index(index, frame):
   for path, obj in pathset_from_object(frame):
     key = (len(path[:-1]), tuple(path[:-1]))
     if S.get(key) is None:
-      S[key] = lambda _p=path[-1], _o=obj: jsonld_resolve_frame_object(index, _p, _o)
+      S[key] = lambda _p=path[-1], _o=obj: jsonld_resolve_frame_object_with_multi_index(multi_index, _p, _o)
     else:
-      S[key] = lambda _p=path[-1], _o=obj, _s=S[key]: chain_set_intersection((_s(), jsonld_resolve_frame_object(index, _p, _o)))
+      S[key] = lambda _p=path[-1], _o=obj, _s=S[key]: chain_set_intersection((_s(), jsonld_resolve_frame_object_with_multi_index(multi_index, _p, _o)))
   # Each iteration we pop one of the largest paths
   #  and intersect it with its parent, Once we get an
   #  empty path length we're done.
@@ -179,6 +181,7 @@ def jsonld_frame_with_index(index, frame):
     #
     s = lambda _s=subjs, _p=pred: chain_set_union(
       index.pos.get(_p, {}).get(o, set())
+      for index in multi_index
       for o in _s()
     )
     if S.get((L-1, parent)) is None:
@@ -187,4 +190,7 @@ def jsonld_frame_with_index(index, frame):
       S[(L-1, parent)] = lambda _s=S[(L-1, parent)], __s=s: chain_set_intersection((_s(), __s()))
   # If we got here, then S is empty, meaning the frame is empty,
   #  meaning we actually just want all subjects.
-  return index.spo.keys()
+  return chain_set_union(
+    index.spo.keys()
+    for index in multi_index
+  )
