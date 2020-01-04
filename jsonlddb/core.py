@@ -121,16 +121,14 @@ def jsonld_index_remove_triples(index, triples):
 def pathset_from_object(obj):
   Q = [
     ([p], o)
-    for p, O in obj.items()
-    for o in force_list(O)
+    for p, o in obj.items()
   ]
   while Q:
     path, obj = Q.pop()
     if type(obj) == dict and obj:
       Q += [
         (path + [p], o)
-        for p, O in obj.items()
-        for o in force_list(O)
+        for p, o in obj.items()
       ]
     else:
       yield path, obj
@@ -156,19 +154,21 @@ def jsonld_frame_with_multi_index(multi_index, frame):
    just prepares the necessary lookups, but we ultimately compute all intersections
    at the same time -- this should help with reducing the amount of memory
    being used as well as helping with CPU optimizations.
-
-  TODO: Allow "options" with [] notation
-  TODO: allow specifying minimal vs maximal subsets (currently always minimal)
   '''
   # S looks like: (sizeof(path), path): lazy[possible_subjects]
   # sizeof(path) is what orders our dict.
   S = sortedcontainers.SortedDict()
   for path, obj in pathset_from_object(frame):
     key = (len(path[:-1]), tuple(path[:-1]))
+    s = lambda _p=path[-1], _o=force_list(obj): chain_set_union(
+      jsonld_resolve_frame_object_with_multi_index(multi_index, _p, o)
+      for o in _o
+    )
     if S.get(key) is None:
-      S[key] = lambda _p=path[-1], _o=obj: jsonld_resolve_frame_object_with_multi_index(multi_index, _p, _o)
+      S[key] = s
     else:
-      S[key] = lambda _p=path[-1], _o=obj, _s=S[key]: chain_set_intersection((_s(), jsonld_resolve_frame_object_with_multi_index(multi_index, _p, _o)))
+      S[key] = lambda _s=s, __s=S[key]: chain_set_intersection((_s(), __s()))
+  #
   # Each iteration we pop one of the largest paths
   #  and intersect it with its parent, Once we get an
   #  empty path length we're done.
