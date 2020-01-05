@@ -36,4 +36,4 @@ def test_rules():
   # Relevant query, should resolve
   assert 'test!' in frame_with_rules(docs, { '@type': 'Thing' }, rules=rules, context=context)['name']
   # Too broad, shouldn't resolve
-  assert 'test!' not in frame_with_rules(docs, {}, rules=rules, context=context)['name']
+  assert 'test!' not in frame_with_rules(docs.with_db(rules), {}, context=context)['name']
