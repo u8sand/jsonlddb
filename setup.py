@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
   name='jsonlddb',
@@ -8,6 +8,13 @@ setup(
   author='Daniel J. B. Clarke',
   author_email='u8sand@gmail.com',
   license='MIT',
-  packages=['jsonlddb'],
+  packages=find_packages(exclude=['test_*.py']),
   long_description=open('README.md', 'r').read(),
+  requires=['sortedcontainers'],
+  extras_require={
+    'generate': ['nltk'],
+    'table': ['pandas'],
+  },
+  tests_require=['pytest'],
+  test_suite='pytest',
 )
