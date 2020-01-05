@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
   name='jsonlddb',
-  version='0.1',
+  version='1.1.0',
   description='A jsonld in-memory database for fast framing',
   url='https://github.com/u8sand/jsonlddb',
   author='Daniel J. B. Clarke',
