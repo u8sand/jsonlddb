@@ -28,7 +28,7 @@ def jsonld_to_triples(jsonld):
     if type(obj) != dict:
       if type(obj) == list:
         if not warned:
-          logging.warn('JSON-LD Formatting error, recovering by flattening list')
+          logging.warning('JSON-LD Formatting error, recovering by flattening list')
           warned = True
         Q += [
           (subjs, pred, o)
