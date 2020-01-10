@@ -29,7 +29,5 @@ Important assumptions made by this architecture:
 
 '''
 
-from . import core, generate, oop, optimization, table
+from . import oop
 JsonLDDatabase = oop.JsonLDDatabase
-from_df = table.from_df
-to_dfs = table.to_dfs
