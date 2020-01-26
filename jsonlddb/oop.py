@@ -194,6 +194,11 @@ class JsonLDFrame:
           additional=self._additional,
         )
   #
+  def __len__(self):
+    return sum(
+      1 for _ in self.frame(self._frame)
+    )
+  #
   def skip(self, skip):
     return JsonLDFrame(
       self._db,
