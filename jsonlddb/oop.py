@@ -272,7 +272,10 @@ class JsonLDDatabase(JsonLDFrame):
       fw = open(file, 'wb') if type(file) == str else file
       import msgpack
       from jsonlddb.json import prepare
-      msgpack.pack(prepare(self.index.spo), fw)
+      packer = msgpack.Packer(encoding='utf-8')
+      for s, po in prepare(self.index.spo).items():
+        fw.write(packer.pack(s))
+        fw.write(packer.pack(po))
     elif fmt == 'json':
       fw = open(file, 'w') if type(file) == str else file
       from jsonlddb import json
@@ -285,13 +288,14 @@ class JsonLDDatabase(JsonLDFrame):
     if fmt == 'msgpack':
       fr = open(file, 'rb') if type(file) == str else file
       import msgpack
+      unpacker = msgpack.Unpacker(fr, encoding='utf-8', use_list=False)
       self.update_triples(
         (
           RDFTerm(RDFTermType.IRI, s),
           p,
-          RDFTerm(RDFTermType.LITERAL, o[0]) if isinstance(o, list) else RDFTerm(RDFTermType.IRI, o),
+          RDFTerm(RDFTermType.LITERAL, o[0]) if isinstance(o, tuple) else RDFTerm(RDFTermType.IRI, o),
         )
-        for s, pO in msgpack.unpack(fr, encoding='utf-8', use_list=False).items()
+        for s, pO in zip(unpacker, unpacker)
         for p, O in pO.items()
         for o in O
       )
