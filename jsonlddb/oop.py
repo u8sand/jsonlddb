@@ -266,3 +266,48 @@ class JsonLDDatabase(JsonLDFrame):
   def remove_triples(self, triples):
     self.index.remove_triples(triples)
     return self
+  #
+  def dump(self, file, fmt='msgpack'):
+    if fmt == 'msgpack':
+      fw = open(file, 'wb') if type(file) == str else file
+      import msgpack
+      from jsonlddb.json import prepare
+      msgpack.pack(prepare(self.index.spo), fw)
+    elif fmt == 'json':
+      fw = open(file, 'w') if type(file) == str else file
+      from jsonlddb import json
+      json.dump(self.index.spo, fw)
+    else:
+      raise Exception('Unrecognized fmt for JsonLDDb.dump')
+    return self
+  #
+  def load(self, file, fmt='msgpack'):
+    if fmt == 'msgpack':
+      fr = open(file, 'rb') if type(file) == str else file
+      import msgpack
+      self.update_triples(
+        (
+          RDFTerm(RDFTermType.IRI, s),
+          p,
+          RDFTerm(RDFTermType.LITERAL, o[0]) if isinstance(o, list) else RDFTerm(RDFTermType.IRI, o),
+        )
+        for s, pO in msgpack.unpack(fr, encoding='utf-8', use_list=False).items()
+        for p, O in pO.items()
+        for o in O
+      )
+    elif fmt == 'json':
+      fr = open(file, 'r') if type(file) == str else file
+      from jsonlddb import json
+      self.update_triples(
+        (
+          RDFTerm(RDFTermType.IRI, s),
+          p,
+          RDFTerm(RDFTermType.LITERAL, o[0]) if isinstance(o, list) else RDFTerm(RDFTermType.IRI, o),
+        )
+        for s, pO in json.load(fr).items()
+        for p, O in pO.items()
+        for o in O
+      )
+    else:
+      raise Exception('Unrecognized fmt for JsonLDDb.load')
+    return self

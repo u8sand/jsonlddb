@@ -1,15 +1,34 @@
 import json
 import functools
+from jsonlddb.rdf import RDFTerm, RDFTermType
 
-def default_ex(o):
+def prepare(o):
   ''' Properly serialize JSON objects
   '''
   if isinstance(o, JSON):
-    return o.value
-  return o
+    return prepare(o.value)
+  elif isinstance(o, RDFTerm):
+    if o.type == RDFTermType.IRI:
+      return str(o.value)
+    else:
+      return [o.value]
+  elif isinstance(o, dict):
+    return {
+      prepare(k): prepare(v)
+      for k, v in o.items()
+    }
+  elif isinstance(o, list) or isinstance(o, set) or isinstance(o, tuple):
+    return [
+      prepare(v)
+      for v in o
+    ]
+  else:
+    return o
 
+load = json.load
 loads = json.loads
-dumps = functools.partial(json.dumps, default=default_ex)
+dump = lambda obj, fp, **kwargs: json.dump(prepare(obj), fp, **kwargs)
+dumps = lambda obj, **kwargs: json.dumps(prepare(obj), **kwargs)
 
 class JSON(object):
   ''' Use an object normally in python with awareness that it should
