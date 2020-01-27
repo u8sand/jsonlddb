@@ -9,7 +9,7 @@ from jsonlddb.index import JsonLDIndex
 from jsonlddb.rdf import RDFTerm, RDFTermType
 
 def isLiteral(v):
-  return type(v) not in [list, dict]
+  return type(v) in [None, str, int, float, uuid.UUID, RDFTerm]
 
 def force_list(v):
   return v if type(v) == list else [v]
