@@ -1,5 +1,5 @@
 from uuid import UUID
-from jsonlddb import *
+from jsonlddb import JsonLDDatabase
 
 db = JsonLDDatabase()
 
