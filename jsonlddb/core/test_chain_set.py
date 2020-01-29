@@ -1,4 +1,4 @@
-from jsonlddb.chain_set import chain_set_union, chain_set_intersection
+from jsonlddb.core import chain_set
 
 def assert_chain_set_eq(gen0, gen1):
   V0 = {}
@@ -19,7 +19,7 @@ def assert_chain_set_eq(gen0, gen1):
 def test_chain_set_union():
   # only generators
   assert_chain_set_eq(
-    chain_set_union([
+    chain_set.chain_set_union([
       range(10),
       range(5, 15),
       range(10, 20),
@@ -28,7 +28,7 @@ def test_chain_set_union():
   )
   # 1 set mixture
   assert_chain_set_eq(
-    chain_set_union([
+    chain_set.chain_set_union([
       set(range(15, 25)),
       range(10),
       range(5, 15),
@@ -38,7 +38,7 @@ def test_chain_set_union():
   )
   # 2 set mixture
   assert_chain_set_eq(
-    chain_set_union([
+    chain_set.chain_set_union([
       set(range(15, 25)),
       set(range(10)),
       range(5, 15),
@@ -48,7 +48,7 @@ def test_chain_set_union():
   )
   # only sets
   assert_chain_set_eq(
-    chain_set_union([
+    chain_set.chain_set_union([
       set(range(10)),
       set(range(10, 20)),
     ]),
@@ -58,7 +58,7 @@ def test_chain_set_union():
 def test_chain_set_intersection():
   # only generators
   assert_chain_set_eq(
-    chain_set_intersection([
+    chain_set.chain_set_intersection([
       range(10),
       range(5, 15),
     ]),
@@ -66,7 +66,7 @@ def test_chain_set_intersection():
   )
   # 1 set mixture
   assert_chain_set_eq(
-    chain_set_intersection([
+    chain_set.chain_set_intersection([
       set(range(10)),
       range(5, 15),
     ]),
@@ -74,7 +74,7 @@ def test_chain_set_intersection():
   )
   # 2 set mixture
   assert_chain_set_eq(
-    chain_set_intersection([
+    chain_set.chain_set_intersection([
       set(range(10)),
       set(range(5, 15)),
       range(0, 15),
@@ -83,7 +83,7 @@ def test_chain_set_intersection():
   )
   # only sets
   assert_chain_set_eq(
-    chain_set_intersection([
+    chain_set.chain_set_intersection([
       set(range(10)),
       set(range(5, 15)),
     ]),

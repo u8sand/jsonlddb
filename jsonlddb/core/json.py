@@ -1,14 +1,13 @@
 import json
-import functools
-from jsonlddb.rdf import RDFTerm, RDFTermType
+from jsonlddb.core import rdf
 
 def prepare(o):
   ''' Properly serialize JSON objects
   '''
   if isinstance(o, JSON):
     return prepare(o.value)
-  elif isinstance(o, RDFTerm):
-    if o.type == RDFTermType.IRI:
+  elif isinstance(o, rdf.RDFTerm):
+    if o.type == rdf.RDFTermType.IRI:
       return str(o.value)
     else:
       return [o.value]

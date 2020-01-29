@@ -1,4 +1,4 @@
-from jsonlddb.generate import random_jsonld
+from jsonlddb.extras.generate import random_jsonld
 from jsonlddb.oop import JsonLDDatabase
 
 def test_generate():

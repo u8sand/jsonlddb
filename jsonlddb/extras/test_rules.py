@@ -1,5 +1,5 @@
 from jsonlddb.oop import JsonLDDatabase
-from jsonlddb.rules import frame_with_rules
+from jsonlddb.extras.rules import frame_with_rules
 
 def test_rules():
   context = {

@@ -29,5 +29,5 @@ Important assumptions made by this architecture:
 
 '''
 
-from . import oop
-JsonLDDatabase = oop.JsonLDDatabase
+from jsonlddb.oop import JsonLDDatabase
+from jsonlddb import core, extras

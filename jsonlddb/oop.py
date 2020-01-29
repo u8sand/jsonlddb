@@ -1,8 +1,6 @@
 import itertools
 from pprint import pformat
-from jsonlddb.core import jsonld_frame_with_multi_index, jsonld_to_triples, isLiteral
-from jsonlddb.index import JsonLDIndex
-from jsonlddb.rdf import RDFTerm, RDFTermType
+from jsonlddb.core import framing, jsonld, utils, index, rdf, json
 
 class Ellipse:
   def __repr__(self):
@@ -43,7 +41,7 @@ class JsonLDNode:
     return str(self._repr())
   #
   def __getitem__(self, pred):
-    if isLiteral(pred):
+    if utils.isLiteral(pred):
       if pred == '@id':
         return self._subj
       else:
@@ -67,7 +65,7 @@ class JsonLDNode:
     return {
       pred
       for index in [db.index for db in ([self._db] + self._additional)]
-      for pred in index.spo.get(RDFTerm(RDFTermType.IRI, self._subj), {}).keys()
+      for pred in index.spo.get(rdf.RDFTerm(rdf.RDFTermType.IRI, self._subj), {}).keys()
       if pred not in ['*', '**'] and not pred.startswith('~')
     }
   #
@@ -184,7 +182,7 @@ class JsonLDFrame:
   #
   def __iter__(self):
     for subj in self.frame(self._frame):
-      if subj.type == RDFTermType.LITERAL or '~@id' in self._frame:
+      if subj.type == rdf.RDFTermType.LITERAL or '~@id' in self._frame:
         yield subj.value
       else:
         yield JsonLDNode(
@@ -239,7 +237,7 @@ class JsonLDFrame:
     )
   #
   def frame(self, frame):
-    return jsonld_frame_with_multi_index(
+    return framing.jsonld_frame_with_multi_index(
       [
         db.index
         for db in ([self._db] + self._additional)
@@ -249,18 +247,18 @@ class JsonLDFrame:
 class JsonLDDatabase(JsonLDFrame):
   def __init__(self):
     JsonLDFrame.__init__(self, self, {})
-    self.index = JsonLDIndex()
+    self.index = index.JsonLDIndex()
   #
-  def update(self, jsonld):
-    self.update_triples(jsonld_to_triples(jsonld))
+  def update(self, obj):
+    self.update_triples(jsonld.jsonld_to_triples(obj))
     return self
   #
   def update_triples(self, triples):
     self.index.insert_triples(triples)
     return self
   #
-  def remove(self, jsonld):
-    self.remove_triples(jsonld_to_triples(jsonld))
+  def remove(self, obj):
+    self.remove_triples(jsonld.jsonld_to_triples(obj))
     return self
   #
   def remove_triples(self, triples):
@@ -271,14 +269,12 @@ class JsonLDDatabase(JsonLDFrame):
     if fmt == 'msgpack':
       fw = open(file, 'wb') if type(file) == str else file
       import msgpack
-      from jsonlddb.json import prepare
       packer = msgpack.Packer(encoding='utf-8')
       for s, po in prepare(self.index.spo).items():
         fw.write(packer.pack(s))
         fw.write(packer.pack(po))
     elif fmt == 'json':
       fw = open(file, 'w') if type(file) == str else file
-      from jsonlddb import json
       json.dump(self.index.spo, fw)
     else:
       raise Exception('Unrecognized fmt for JsonLDDb.dump')
@@ -291,9 +287,9 @@ class JsonLDDatabase(JsonLDFrame):
       unpacker = msgpack.Unpacker(fr, encoding='utf-8', use_list=False)
       self.update_triples(
         (
-          RDFTerm(RDFTermType.IRI, s),
+          rdf.RDFTerm(rdf.RDFTermType.IRI, s),
           p,
-          RDFTerm(RDFTermType.LITERAL, o[0]) if isinstance(o, tuple) else RDFTerm(RDFTermType.IRI, o),
+          rdf.RDFTerm(rdf.RDFTermType.LITERAL, o[0]) if isinstance(o, tuple) else rdf.RDFTerm(rdf.RDFTermType.IRI, o),
         )
         for s, pO in zip(unpacker, unpacker)
         for p, O in pO.items()
@@ -301,12 +297,11 @@ class JsonLDDatabase(JsonLDFrame):
       )
     elif fmt == 'json':
       fr = open(file, 'r') if type(file) == str else file
-      from jsonlddb import json
       self.update_triples(
         (
-          RDFTerm(RDFTermType.IRI, s),
+          rdf.RDFTerm(rdf.RDFTermType.IRI, s),
           p,
-          RDFTerm(RDFTermType.LITERAL, o[0]) if isinstance(o, list) else RDFTerm(RDFTermType.IRI, o),
+          rdf.RDFTerm(rdf.RDFTermType.LITERAL, o[0]) if isinstance(o, list) else rdf.RDFTerm(rdf.RDFTermType.IRI, o),
         )
         for s, pO in json.load(fr).items()
         for p, O in pO.items()
