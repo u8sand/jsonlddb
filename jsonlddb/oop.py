@@ -266,47 +266,9 @@ class JsonLDDatabase(JsonLDFrame):
     return self
   #
   def dump(self, file, fmt='msgpack'):
-    if fmt == 'msgpack':
-      fw = open(file, 'wb') if type(file) == str else file
-      import msgpack
-      packer = msgpack.Packer(encoding='utf-8')
-      for s, po in prepare(self.index.spo).items():
-        fw.write(packer.pack(s))
-        fw.write(packer.pack(po))
-    elif fmt == 'json':
-      fw = open(file, 'w') if type(file) == str else file
-      json.dump(self.index.spo, fw)
-    else:
-      raise Exception('Unrecognized fmt for JsonLDDb.dump')
-    return self
+    from jsonlddb.extras.serialization import serialization
+    return serialization[fmt].dump(self, file)
   #
   def load(self, file, fmt='msgpack'):
-    if fmt == 'msgpack':
-      fr = open(file, 'rb') if type(file) == str else file
-      import msgpack
-      unpacker = msgpack.Unpacker(fr, encoding='utf-8', use_list=False)
-      self.update_triples(
-        (
-          rdf.RDFTerm(rdf.RDFTermType.IRI, s),
-          p,
-          rdf.RDFTerm(rdf.RDFTermType.LITERAL, o[0]) if isinstance(o, tuple) else rdf.RDFTerm(rdf.RDFTermType.IRI, o),
-        )
-        for s, pO in zip(unpacker, unpacker)
-        for p, O in pO.items()
-        for o in O
-      )
-    elif fmt == 'json':
-      fr = open(file, 'r') if type(file) == str else file
-      self.update_triples(
-        (
-          rdf.RDFTerm(rdf.RDFTermType.IRI, s),
-          p,
-          rdf.RDFTerm(rdf.RDFTermType.LITERAL, o[0]) if isinstance(o, list) else rdf.RDFTerm(rdf.RDFTermType.IRI, o),
-        )
-        for s, pO in json.load(fr).items()
-        for p, O in pO.items()
-        for o in O
-      )
-    else:
-      raise Exception('Unrecognized fmt for JsonLDDb.load')
-    return self
+    from jsonlddb.extras.serialization import serialization
+    return serialization[fmt].load(file, db=self)
