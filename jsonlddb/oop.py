@@ -61,6 +61,20 @@ class JsonLDNode:
         additional=self._additional,
       )
   #
+  def update(self, obj):
+    if '@id' in obj and obj['@id'] != self._subj:
+      raise Exception('Changing @id is not yet supported')
+    self._db.update_triples(
+      jsonld.jsonld_to_triples(dict(obj, **{'@id': self._subj}))
+    )
+    return self
+  #
+  def remove(self, obj):
+    self._db.remove_triples(
+      jsonld.jsonld_to_triples(dict(obj, **{'@id': self._subj}))
+    )
+    return self
+  #
   def keys(self):
     return {
       pred
@@ -243,6 +257,21 @@ class JsonLDFrame:
         for db in ([self._db] + self._additional)
       ], frame.get('~@id', frame)
     )
+  #
+  def update(self, obj):
+    self._db.update_triples(
+      jsonld.jsonld_to_triples(dict(obj, **{'@id': subj}))
+      for subj in self.frame(self._frame)
+    )
+    return self
+  #
+  def remove(self, obj):
+    self._db.remove_triples(
+      jsonld.jsonld_to_triples(dict(obj, **{'@id': subj}))
+      for subj in self.frame(self._frame)
+    )
+    return self
+
 
 class JsonLDDatabase(JsonLDFrame):
   def __init__(self):
