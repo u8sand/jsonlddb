@@ -1,35 +1,8 @@
 from jsonlddb.oop import JsonLDDatabase
+from jsonlddb.extras import examples
 
 def test_jsonlddb_framing():
-  db = JsonLDDatabase().update([
-    {
-      '@id': '0',
-      '@type': 'Person',
-      'owns': {'@id': '4', '@type': 'Car', 'model': 'S'},
-      'spouseOf': [{'@id': '1'}],
-    },
-    {
-      '@id': '1',
-      '@type': 'Person',
-      'spouseOf': [{'@id': '0'}],
-    },
-    {
-      '@id': '2',
-      '@type': 'Person',
-      'childOf': [{'@id': '0'}, {'@id': '1'}],
-    },
-    {
-      '@id': '3',
-      '@type': 'Person',
-      'owns': {'@id': '5', '@type': 'Car', 'model': '3'},
-      'childOf': [{'@id': '0'}, {'@id': '1'}],
-    },
-    {
-      '@id': '6',
-      '@type': 'Car',
-      'model': 'X',
-    },
-  ])
+  db = examples.familial_ownership
 
   # Empty query should return all subjects
   query = {}
