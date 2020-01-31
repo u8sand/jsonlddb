@@ -6,8 +6,11 @@ def random_string():
   global corpus
   if corpus is None:
     import nltk
-    nltk.download('words')
-    corpus = nltk.corpus.words.words()
+    try:
+      corpus = nltk.corpus.words.words()
+    except LookupError:
+      nltk.download('words')
+      corpus = nltk.corpus.words.words()
   return random.choice(corpus)
 
 def random_jsonld(n_records, mu_rels, std_rels, mu_lits, std_lits, n_types):
