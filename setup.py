@@ -12,8 +12,10 @@ setup(
   long_description=open('README.md', 'r').read(),
   requires=['sortedcontainers'],
   extras_require={
-    'generate': ['nltk'],
-    'table': ['pandas'],
+    'extras.generate': ['nltk'],
+    'extras.pandas': ['pandas'],
+    'extras.datapackage': ['datapackage'],
+    'extras.jsonschema': ['jsonschema'],
   },
   tests_require=['pytest'],
   test_suite='pytest',
