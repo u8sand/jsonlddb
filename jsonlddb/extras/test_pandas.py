@@ -1,5 +1,12 @@
 from jsonlddb.extras import pandas, examples
 
+try:
+  from jsondiff import diff
+except ImportError:
+  import logging
+  logging.warn('install jsondiff for easier debugging')
+  diff = lambda a, b: str((a, b))
+
 def test_pandas():
   db = examples.familial_ownership
   dfs = pandas.to_dfs(db)
@@ -20,7 +27,7 @@ def test_pandas():
     dict(
       subject='Person',
       predicate='owns',
-      object='Person',
+      object='Car',
     ),
   ])
-  assert db == db_recover
+  assert db.index.spo == db_recover.index.spo, diff(db.index.spo, db_recover.index.spo)
