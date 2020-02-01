@@ -14,12 +14,13 @@ def to_jsonschema(db, additionalProperties=False):
               '$ref': '#/components/Json'
             } },
           { 'type': 'object',
-            'additionalProperties': {
+            'patternProperties': {
               'keyType': 'string',
               'valueType': {
                 '$ref': '#/components/Json'
               }
-            } }
+            },
+            'additionalProperties': True }
         ]
       },
       'JsonLD': {
@@ -35,7 +36,7 @@ def to_jsonschema(db, additionalProperties=False):
                   'type': 'string'
                 }
               },
-              'additionalProperties': {
+              'patternProperties': {
                 '^.*$': {
                   'keyType': 'string',
                   'valueType': {
@@ -45,7 +46,8 @@ def to_jsonschema(db, additionalProperties=False):
                     ]
                   }
                 }
-              } },
+              },
+              'additionalProperties': True },
           { 'type': 'array',
             'items': {
               '$ref': '#/components/JsonLD'
@@ -133,7 +135,7 @@ def to_jsonschema(db, additionalProperties=False):
       if len(predProps['anyOf']) == 0:
         continue
       elif len(predProps['anyOf']) == 1:
-        predProps = dict(predProps['anyOf'][0])
+        predProps = dict(next(iter(predProps['anyOf'])))
       else:
         predProps['anyOf'] = [dict(prop) for prop in predProps['anyOf']]
       #
