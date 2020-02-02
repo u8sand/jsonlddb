@@ -1,6 +1,6 @@
 from jsonlddb import JsonLDDatabase
 
-familial_ownership = JsonLDDatabase().update([
+familial_ownership = JsonLDDatabase().insert([
   {
     '@id': '0',
     '@type': 'Person',

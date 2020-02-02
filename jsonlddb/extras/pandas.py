@@ -61,7 +61,7 @@ def from_dfs(dfs, rels=()):
           yield jsonld_record
   #
   db = JsonLDDatabase()
-  db.update(list(_generate()))
+  db.insert(list(_generate()))
   return db
 
 def to_dfs(db):

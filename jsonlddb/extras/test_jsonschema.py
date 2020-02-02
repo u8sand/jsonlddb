@@ -4,7 +4,7 @@ from jsonlddb.extras import generate, jsonschema
 
 def test_to_jsonschema():
   jsonld = list(generate.random_jsonld(100, 5, 2, 5, 2, 5))
-  db = JsonLDDatabase().update(jsonld)
+  db = JsonLDDatabase().insert(jsonld)
   schemas = jsonschema.to_jsonschema(db)
   resolver = RefResolver.from_schema(schemas)
   validators = {}

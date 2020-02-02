@@ -20,6 +20,6 @@ def frame_with_rules(db, frame, rules=None, context={}):
       # and given frame satisfies query
       for matching_doc in db[rule['given'][0]]:
         # Add rule-created triples
-        tmp.update(context[rule['using'][0]](matching_doc))
+        tmp.insert(context[rule['using'][0]](matching_doc))
   # Frame injecting tmp values
   return db.with_db(tmp)[frame]

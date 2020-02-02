@@ -5,7 +5,7 @@ def test_rules():
   context = {
     'function:test': lambda ld: { '@id': ld['@id'], 'name': 'test!' },
   }
-  rules = JsonLDDatabase().update([
+  rules = JsonLDDatabase().insert([
     {
       '@type': 'Rule',
       'given': {
@@ -23,7 +23,7 @@ def test_rules():
       }
     }
   ])
-  docs = JsonLDDatabase().update([
+  docs = JsonLDDatabase().insert([
     {
       '@type': 'Thing',
       'url': 'test1',

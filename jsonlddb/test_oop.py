@@ -58,7 +58,7 @@ def test_jsonlddb():
     '@id': '3',
     'owns': { '@id': '5' }
   })
-  index = db.update({
+  index = db.insert({
     '@id': '2',
     'owns': { '@id': '5' }
   })

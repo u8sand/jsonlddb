@@ -4,7 +4,7 @@ from jsonlddb import JsonLDDatabase
 db = JsonLDDatabase()
 
 # Add JsonLD to the database
-db.update({
+db.insert({
   '@type': 'Dataset',
   'name': 'My Data',
   'storedIn': {
@@ -23,7 +23,7 @@ db.update({
 
 # Add additional JsonLD (note that both `{ @type: Person, name: Me }`
 #  and `{ @type: Dataset, name: My Data }` do not get duplicated)
-db.update({
+db.insert({
   '@type': 'Person',
   'name': 'Me',
   'likes': {
