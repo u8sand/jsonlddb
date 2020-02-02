@@ -81,7 +81,7 @@ def to_dfs(db):
             dfs[tbl][pred][record['@id']] = json.dumps(objs)
             continue
           elif all(map(utils.isLiteral, objs)):
-            logging.warn('Ignoring mixed literals on same predicate with objects')
+            logging.warning('Ignoring mixed literals on same predicate with objects')
           ftbls = set(objs['@type'])
           for ftbl in ftbls:
             m2m = tbl+'__'+pred+'_'+ftbl

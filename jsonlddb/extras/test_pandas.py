@@ -4,7 +4,7 @@ try:
   from jsondiff import diff
 except ImportError:
   import logging
-  logging.warn('install jsondiff for easier debugging')
+  logging.warning('install jsondiff for easier debugging')
   diff = lambda a, b: str((a, b))
 
 def test_pandas():
