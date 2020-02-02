@@ -19,7 +19,7 @@ def load(file, db=None):
   else:
     fr = file
   #
-  db.update_triples(
+  db.index.insert_triples(
     (
       rdf.RDFTerm(rdf.RDFTermType.IRI, s),
       p,

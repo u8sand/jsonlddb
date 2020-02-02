@@ -1,3 +1,4 @@
+import logging
 import itertools
 from pprint import pformat
 from jsonlddb.core import framing, jsonld, utils, index, rdf, json
@@ -30,7 +31,7 @@ class JsonLDNode:
         pred: objs._repr() if isinstance(objs, JsonLDFrame) else objs
         for pred, objs in itertools.islice(
           self.items(),
-          self._skip, None if self._limit is None else (self._skip + self._limit)
+          self._skip, None if self._limit is None else ((0 if self._skip is None else self._skip) + self._limit)
         )
       }) if self._depth else ellipse
   #
@@ -64,13 +65,13 @@ class JsonLDNode:
   def update(self, obj):
     if '@id' in obj and obj['@id'] != self._subj:
       raise Exception('Changing @id is not yet supported')
-    self._db.update_triples(
+    self._db.index.insert_triples(
       jsonld.jsonld_to_triples(dict(obj, **{'@id': self._subj}))
     )
     return self
   #
   def remove(self, obj):
-    self._db.remove_triples(
+    self._db.index.remove_triples(
       jsonld.jsonld_to_triples(dict(obj, **{'@id': self._subj}))
     )
     return self
@@ -148,18 +149,18 @@ class JsonLDFrame:
     vals = [
       obj._repr() if getattr(obj, '_repr', None) is not None else obj
       for obj in itertools.islice(
-        self, self._skip, None if self._limit is None else (self._skip + self._limit)
+        self, self._skip, None if self._limit is None else ((0 if self._skip is None else self._skip) + self._limit)
       )
     ]
     if len(vals) == 1:
       return vals[0]
-    elif len(vals) >= self._limit:
-      if self._skip > 0:
+    elif self._limit is not None and len(vals) >= self._limit:
+      if self._skip is not None and self._skip > 0:
         return [ellipse, *vals, ellipse]
       else:
         return [*vals, ellipse]
     else:
-      if self._skip > 0:
+      if self._skip is not None and self._skip > 0:
         return [ellipse, *vals]
       else:
         return vals
@@ -182,7 +183,7 @@ class JsonLDFrame:
       return next(iter(itertools.islice(self, pred, pred + 1)))
     elif type(pred) == slice:
       if pred.step is None or pred.step == 1 and (pred.start is None or pred.stop is None or pred.start < pred.stop):
-        return self.skip(pred.start).limit(None if pred.stop is None else pred.stop - pred.start)
+        return self.skip(pred.start).limit(None if pred.stop is None else (pred.stop if pred.start is None else (pred.stop - pred.start)))
       else:
         return itertools.islice(self, pred.start, pred.stop, pred.step)
     else:
@@ -259,16 +260,18 @@ class JsonLDFrame:
     )
   #
   def update(self, obj):
-    self._db.update_triples(
-      jsonld.jsonld_to_triples(dict(obj, **{'@id': subj}))
-      for subj in self.frame(self._frame)
+    self._db.index.insert_triples(
+      triples
+      for subj in self.frame(self._frame) if subj.type == rdf.RDFTermType.IRI
+      for triples in jsonld.jsonld_to_triples(dict(obj, **{'@id': subj.value}))
     )
     return self
   #
   def remove(self, obj):
-    self._db.remove_triples(
-      jsonld.jsonld_to_triples(dict(obj, **{'@id': subj}))
-      for subj in self.frame(self._frame)
+    self._db.index.remove_triples(
+      triples
+      for subj in self.frame(self._frame) if subj.type == rdf.RDFTermType.IRI
+      for triples in jsonld.jsonld_to_triples(dict(obj, **{'@id': subj.value}))
     )
     return self
 
@@ -278,26 +281,18 @@ class JsonLDDatabase(JsonLDFrame):
     JsonLDFrame.__init__(self, self, {})
     self.index = index.JsonLDIndex()
   #
+  def insert(self, obj):
+    self.index.insert_triples(jsonld.jsonld_to_triples(obj))
+    return self
+  #
   def update(self, obj):
-    self.update_triples(jsonld.jsonld_to_triples(obj))
-    return self
-  #
-  def update_triples(self, triples):
-    self.index.insert_triples(triples)
-    return self
-  #
-  def remove(self, obj):
-    self.remove_triples(jsonld.jsonld_to_triples(obj))
-    return self
-  #
-  def remove_triples(self, triples):
-    self.index.remove_triples(triples)
-    return self
+    logging.warning('Deprecated: use insert when adding data to a database and update to apply to a framed selection.')
+    return self.insert(obj)
   #
   def dump(self, file, fmt='msgpack'):
-    from jsonlddb.extras.serialization import serialization
-    return serialization[fmt].dump(self, file)
+    from jsonlddb.extras import serialization
+    return getattr(serialization, fmt).dump(self, file)
   #
   def load(self, file, fmt='msgpack'):
-    from jsonlddb.extras.serialization import serialization
-    return serialization[fmt].load(file, db=self)
+    from jsonlddb.extras import serialization
+    return getattr(serialization, fmt).load(file, db=self)

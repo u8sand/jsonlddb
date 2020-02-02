@@ -24,7 +24,7 @@ def load(file, db=None):
     fr = file
   #
   unpacker = msgpack.Unpacker(fr, raw=False, use_list=False)
-  db.update_triples(
+  db.index.insert_triples(
     (
       rdf.RDFTerm(rdf.RDFTermType.IRI, s),
       p,

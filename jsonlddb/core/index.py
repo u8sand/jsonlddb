@@ -6,7 +6,7 @@ def dds_insert(d, s, p, o):
   d[s][p].add(o)
 
 def dds_remove(d, s, p, o):
-  if d.get(s) is not None and d[s].get(p) is not None:
+  if d.get(s) is not None and d[s].get(p) is not None and o in d[s][p]:
     d[s][p].remove(o)
     if not d[s][p]:
       del d[s][p]
