@@ -2,7 +2,10 @@ import re
 import os
 import functools
 import collections
+import pandas as pd
+from datapackage import DataPackage
 from jsonlddb.core import json, utils
+from jsonlddb.extras import pandas
 
 def to_datapackage(db, path='datapackage'):
   ''' Create frictionless datapackage from jsonlddb database
@@ -155,10 +158,46 @@ def to_datapackage(db, path='datapackage'):
   # if path is set, write to disk
   if path:
     os.makedirs(path, exist_ok=True)
-    from jsonlddb.extras import pandas
-    for tbl, df in pandas.to_dfs(db).items():
-      df.to_csv(os.path.join(path, tbl+'.tsv'), sep='\t')
+    dfs = pandas.to_dfs(db)
+    for resource in schema['resources']:
+      cols = [field['name'] for field in resource['schema']['fields']]
+      dfs[resource['description']].reset_index()[cols].to_csv(
+        os.path.join(path, resource['path']),
+        sep='\t',
+        index=None,
+      )
     json.dump(schema, open(os.path.join(path, 'datapackage.json'), 'w'), indent=2)
   #
   return schema
 
+def from_datapackage(path):
+  if os.path.isdir(path):
+    path = os.path.join(path, 'datapackage.json')
+  #
+  pkg = DataPackage(path)
+  dfs = {}
+  rels = []
+  for resource in pkg.resources:
+    ldType = resource.descriptor['description']
+    dfs[ldType] = pd.DataFrame(resource.read(), columns=resource.headers)
+    if '@id' in resource.headers:
+      dfs[ldType] = dfs[ldType].set_index('@id')
+    if len(resource.descriptor['schema']['primaryKey']) == 2 and len(resource.descriptor['schema'].get('foreignKeys', [])) == 2:
+      left_rel, right_rel = resource.descriptor['schema']['foreignKeys']
+      rels.append(dict(
+        through=ldType,
+        through_subject=left_rel['fields'],
+        through_object=right_rel['fields'],
+        subject=left_rel['reference']['resource'],
+        predicate=right_rel['fields'].split('_')[0],
+        object=right_rel['reference']['resource'],
+      ))
+    else:
+      for rel in resource.descriptor['schema'].get('foreignKeys', []):
+        rels.append(dict(
+          subject=ldType,
+          predicate=rel['fields'],
+          object=rel['reference']['resource'],
+        ))
+  #
+  return pandas.from_dfs(dfs, rels)
