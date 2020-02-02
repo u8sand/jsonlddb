@@ -1,5 +1,6 @@
 import msgpack
-from jsonlddb.oop import JsonLDDatabase
+from jsonlddb import JsonLDDatabase
+from jsonlddb.core import rdf, json
 
 def dump(db, file):
   if type(file) == str:
@@ -8,7 +9,7 @@ def dump(db, file):
     fw = file
   #
   packer = msgpack.Packer(encoding='utf-8')
-  for s, po in prepare(db.index.spo).items():
+  for s, po in json.prepare(db.index.spo).items():
     fw.write(packer.pack(s))
     fw.write(packer.pack(po))
   return db
