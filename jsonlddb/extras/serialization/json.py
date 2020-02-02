@@ -1,4 +1,5 @@
-from jsonlddb.core import json
+from jsonlddb import JsonLDDatabase
+from jsonlddb.core import json, rdf
 
 def dump(db, file):
   if type(file) == str:
@@ -6,7 +7,7 @@ def dump(db, file):
   else:
     fw = file
   #
-  json.dump(self.index.spo, fw)
+  json.dump(db.index.spo, fw)
   return db
 
 def load(file, db=None):
