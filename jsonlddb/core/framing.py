@@ -1,17 +1,32 @@
+import functools
 import sortedcontainers
 from jsonlddb.core import utils, chain_set, rdf
+
+def jsonld_resolve_index_po(index, pred=None):
+  return index.pos.get(pred, {}).values()
+
+def jsonld_resolve_index_pos(index, pred=None, obj=None):
+  return index.pos.get(pred, {}).get(obj, set())
 
 def jsonld_resolve_frame_object_with_multi_index(multi_index, pred, obj):
   if pred == '@id':
     subj = rdf.RDFTerm(rdf.RDFTermType.IRI, obj)
-    return {subj} if any(subj in index.spo for index in multi_index) else set()
-  if obj == {}:
-    return chain_set.chain_set_union(subjs for index in multi_index for subjs in index.pos.get(pred, {}).values())
+    # return {subj} if any(subj in index.spo for index in multi_index) else set()
+    return chain_set.Iterable(({subj},))
+  #
+  if isinstance(obj, rdf.RDFTerm):
+    return \
+      multi_index \
+      .map(functools.partial(jsonld_resolve_index_pos, pred=pred, obj=obj))
+  elif obj == {}:
+    return \
+      multi_index \
+        .map(functools.partial(jsonld_resolve_index_po, pred=pred)) \
+      .chain()
   else:
-    return chain_set.chain_set_union(
-      index.pos.get(pred, {}).get(rdf.RDFTerm(rdf.RDFTermType.LITERAL, obj), set())
-      for index in multi_index
-    )
+    return \
+      multi_index \
+      .map(functools.partial(jsonld_resolve_index_pos, pred=pred, obj=rdf.RDFTerm(rdf.RDFTermType.LITERAL, obj)))
 
 def jsonld_frame_with_multi_index(multi_index, frame):
   '''
@@ -26,16 +41,25 @@ def jsonld_frame_with_multi_index(multi_index, frame):
   # S looks like: (sizeof(path), path): lazy[possible_subjects]
   # sizeof(path) is what orders our dict.
   S = sortedcontainers.SortedDict()
+  multi_index = chain_set.Iterable(multi_index)
+
   for path, obj in utils.pathset_from_object(frame):
     key = (len(path[:-1]), tuple(path[:-1]))
-    s = lambda _p=path[-1], _o=utils.force_list(obj): chain_set.chain_set_union(
-      jsonld_resolve_frame_object_with_multi_index(multi_index, _p, o)
-      for o in _o
-    )
+    s = \
+      chain_set.Iterable(utils.force_list(obj)) \
+        .map(
+          functools.partial(
+            jsonld_resolve_frame_object_with_multi_index,
+            multi_index,
+            path[-1]
+          )
+        ) \
+        .chain() \
+      .chain_union()
     if S.get(key) is None:
       S[key] = s
     else:
-      S[key] = lambda _s=s, __s=S[key]: chain_set.chain_set_intersection((_s(), __s()))
+      S[key] = S[key].intersection(s)
   #
   # Each iteration we pop one of the largest paths
   #  and intersect it with its parent, Once we get an
@@ -45,20 +69,22 @@ def jsonld_frame_with_multi_index(multi_index, frame):
     if L == 0:
       return subjs()
     parent = tuple(path[:-1])
-    pred = path[-1]
     #
-    s = lambda _s=subjs, _p=pred: chain_set.chain_set_union(
-      index.pos.get(_p, {}).get(o, set())
-      for index in multi_index
-      for o in _s()
-    )
+    s = \
+      subjs \
+        .map(
+          functools.partial(
+            jsonld_resolve_frame_object_with_multi_index,
+            multi_index,
+            path[-1],
+          )
+        ) \
+        .chain() \
+      .chain_union()
     if S.get((L-1, parent)) is None:
       S[(L-1, parent)] = s
     else:
-      S[(L-1, parent)] = lambda _s=S[(L-1, parent)], __s=s: chain_set.chain_set_intersection((_s(), __s()))
+      S[(L-1, parent)] = S[(L-1, parent)].intersection(s)
   # If we got here, then S is empty, meaning the frame is empty,
   #  meaning we actually just want all subjects.
-  return chain_set.chain_set_union(
-    index.spo.keys()
-    for index in multi_index
-  )
+  return multi_index.map(lambda index: index.spo.keys()).chain_union()()

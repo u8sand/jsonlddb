@@ -95,3 +95,92 @@ def chain_set_intersection(generators):
         pass
   #
   return G()
+
+class Lazy:
+  def __init__(self, val=None):
+    self._val = val
+  #
+  def __repr__(self):
+    if isinstance(self._val, Lazy):
+      return '{}[{}]'.format(self.__class__.__name__, repr(self._val))
+    else:
+      return '{}[{}]'.format(self.__class__.__name__, type(self._val).__name__)
+  #
+  def __call__(self):
+    val = self._val
+    while isinstance(val, Lazy):
+      val = val()
+    return val
+  #
+  def map(self, func):
+    return Map(func, self)
+  #
+  def chain(self):
+    return ChainIterable(self)
+  #
+  def union(self, other):
+    return Iterable((self, other)).chain_union()
+  #
+  def intersection(self, other):
+    return Iterable((self, other)).chain_intersection()
+  #
+  def chain_union(self):
+    return ChainUnion(self)
+  #
+  def chain_intersection(self):
+    return ChainIntersection(self)
+
+class Map(Lazy):
+  def __init__(self, func, it):
+    super().__init__()
+    self._func = func
+    self._it = it
+  #
+  def __repr__(self):
+    return 'Map[{}, {}]'.format(
+      self._func.__name__,
+      repr(self._it) if isinstance(self._it, Lazy) else '...'
+    )
+  #
+  def __call__(self):
+    it = self._it
+    while isinstance(it, Lazy):
+      it = it()
+    for val in it:
+      while isinstance(val, Lazy):
+        val = val()
+      ret = self._func(val)
+      while isinstance(ret, Lazy):
+        ret = ret()
+      yield ret
+
+class ChainUnion(Lazy):
+  def __call__(self):
+    return chain_set_union(super().__call__())
+
+class ChainIntersection(Lazy):
+  def __call__(self):
+    return chain_set_intersection(super().__call__())
+
+class ChainIterable(Lazy):
+  def __call__(self):
+    for it in super().__call__():
+      while isinstance(it, Lazy):
+        it = it()
+      for val in it:
+        while isinstance(val, Lazy):
+          val = val()
+        yield val
+
+class CompleteSet(Lazy):
+  pass
+
+class Set(Lazy):
+  pass
+
+class Iterable(Lazy):
+  def __call__(self):
+    for val in super().__call__():
+      while isinstance(val, Lazy):
+        val = val()
+      yield val
