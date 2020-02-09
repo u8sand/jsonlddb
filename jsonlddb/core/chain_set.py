@@ -12,51 +12,60 @@ def chain_set_union(generators):
   # Process sets first
   S = set()
   iterators = collections.deque()
+  sets = collections.deque()
   for gen in generators:
     if is_set(gen):
-      # Yield 'em as we get 'em
-      for s in gen - S:
-        yield s
-      S |= gen
+      sets.append(gen)
     else:
       iterators.append(iter(gen))
+  if len(sets) > 1:
+    S.update(*sets)
+  elif len(sets) == 1:
+    S, = sets
   # No actual iterators? we're already done
   if not iterators:
-    return
-  # Otherwise return a generator which yields the current elements
-  while iterators:
-    it = iterators.popleft()
-    try:
-      v = next(it)
-      if v not in S:
-        yield v
-        S.add(v)
-      iterators.append(it)
-    except StopIteration:
-      pass
+    return S
+  def G():
+    # Yield what we got so far
+    for s in S:
+      yield s
+    # Otherwise return a generator which yields the current elements
+    while iterators:
+      it = iterators.popleft()
+      try:
+        v = next(it)
+        if v not in S:
+          yield v
+          S.add(v)
+        iterators.append(it)
+      except StopIteration:
+        pass
+  return G()
 
 def chain_set_intersection(generators):
   # Process sets first
   S_ = None
   # Record element hashes that are missing from some of the sets
-  impossible = set()
   i = itertools.count()
   iterators = collections.deque()
+  sets = collections.deque()
   # Shortest to largest will be the most efficient way to process these
   for gen in generators:
     if is_set(gen):
-      if S_ is None:
-        S_ = gen
-      else:
-        impossible |= S_ - gen
-        S_ &= gen
+      sets.append(gen)
     else:
       iterators.append((next(i), iter(gen)))
-  if S_ is None:
+  if sets:
+    S_ = set.intersection(*sets)
+  else:
     S_ = set()
   # No actual iterators? just return the intersecting set
   if not iterators:
     return S_
+  elif sets:
+    impossible = set.union(*sets) - S_
+  else:
+    impossible = set()
   # Otherwise proceed with checking generators
   if S_:
     n_iterators = len(iterators) + 1
