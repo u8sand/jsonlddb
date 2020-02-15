@@ -15,3 +15,7 @@ def test_msgpack():
   msgpack.dump(db, tmp)
   db_recover = msgpack.load(tmp)
   assert db.index.spo == db_recover.index.spo, diff(db.index.spo, db_recover.index.spo)
+  #
+  msgpack.dump(db, open(tmp, 'wb'))
+  db_recover = msgpack.load(open(tmp, 'rb'))
+  assert db.index.spo == db_recover.index.spo, diff(db.index.spo, db_recover.index.spo)

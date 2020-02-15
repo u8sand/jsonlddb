@@ -15,3 +15,7 @@ def test_json():
   json.dump(db, tmp)
   db_recover = json.load(tmp)
   assert db.index.spo == db_recover.index.spo, diff(db.index.spo, db_recover.index.spo)
+  #
+  json.dump(db, open(tmp, 'w'))
+  db_recover = json.load(open(tmp, 'r'))
+  assert db.index.spo == db_recover.index.spo, diff(db.index.spo, db_recover.index.spo)
