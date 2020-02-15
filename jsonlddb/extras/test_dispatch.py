@@ -16,16 +16,12 @@ def test_dispatch():
   ctx = dispatch.JsonLDDispatch()
   @ctx.register(
     given={
-      '@value': {
-        '@type': 'Thing',
-        'url': {},
-      }
+      '@type': 'Thing',
+      'url': {},
     },
     produce={
-      '@value': {
-        '@type': 'Thing',
-        'name': {},
-      }
+      '@type': 'Thing',
+      'name': {},
     },
   )
   def test(given):

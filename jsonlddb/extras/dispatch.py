@@ -10,8 +10,8 @@ class JsonLDDispatch:
     def wrapper(func):
       self._rules.insert({
         '@type': 'Rule',
-        'given': given,
-        'produce': produce,
+        'given': {'@value': given},
+        'produce': {'@value': produce},
         'using': func.__name__,
       })
       self._context[func.__name__] = func
