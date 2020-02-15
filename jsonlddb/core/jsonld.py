@@ -1,7 +1,7 @@
 import logging
 from jsonlddb.core import utils, rdf, json
 
-def to_triples(jsonld):
+def to_triples(jsonld, with_wildcard=False, with_deep_wildcard=False):
   Q = [
     ([], None, obj)
     for obj in (jsonld if type(jsonld) == list else [jsonld])
@@ -49,9 +49,11 @@ def to_triples(jsonld):
     if subjs:
       subj = subjs[-1]
       yield (subj, pred, node_id)
-      # yield (subj, '*', node_id)
-      # for s in subjs:
-      #   yield (s, '**', node_id)
+      if with_wildcard:
+        yield (subj, '*', node_id)
+      if with_deep_wildcard:
+        for s in subjs:
+          yield (s, '**', node_id)
     #
     # register this node's literals
     for p, o in literals:
