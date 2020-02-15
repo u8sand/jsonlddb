@@ -66,13 +66,13 @@ class JsonLDNode:
     if '@id' in obj and obj['@id'] != self._subj:
       raise Exception('Changing @id is not yet supported')
     self._db.index.insert_triples(
-      jsonld.jsonld_to_triples(dict(obj, **{'@id': self._subj}))
+      jsonld.to_triples(dict(obj, **{'@id': self._subj}))
     )
     return self
   #
   def remove(self, obj):
     self._db.index.remove_triples(
-      jsonld.jsonld_to_triples(dict(obj, **{'@id': self._subj}))
+      jsonld.to_triples(dict(obj, **{'@id': self._subj}))
     )
     return self
   #
@@ -80,7 +80,7 @@ class JsonLDNode:
     return {
       pred
       for index in [db.index for db in ([self._db] + self._additional)]
-      for pred in index.spo.get(rdf.RDFTerm(rdf.RDFTermType.IRI, self._subj), {}).keys()
+      for pred in index.spo.get(rdf.Term(rdf.TermType.IRI, self._subj), {}).keys()
       if pred not in ['*', '**'] and not pred.startswith('~')
     }
   #
@@ -197,7 +197,7 @@ class JsonLDFrame:
   #
   def __iter__(self):
     for subj in self.frame(self._frame):
-      if subj.type == rdf.RDFTermType.LITERAL or '~@id' in self._frame:
+      if subj.type == rdf.TermType.LITERAL or '~@id' in self._frame:
         yield subj.value
       else:
         yield JsonLDNode(
@@ -252,7 +252,7 @@ class JsonLDFrame:
     )
   #
   def frame(self, frame):
-    return framing.jsonld_frame_with_multi_index(
+    return framing.with_multi_index(
       [
         db.index
         for db in ([self._db] + self._additional)
@@ -262,16 +262,16 @@ class JsonLDFrame:
   def update(self, obj):
     self._db.index.insert_triples(
       triples
-      for subj in self.frame(self._frame) if subj.type == rdf.RDFTermType.IRI
-      for triples in jsonld.jsonld_to_triples(dict(obj, **{'@id': subj.value}))
+      for subj in self.frame(self._frame) if subj.type == rdf.TermType.IRI
+      for triples in jsonld.to_triples(dict(obj, **{'@id': subj.value}))
     )
     return self
   #
   def remove(self, obj):
     self._db.index.remove_triples(
       triples
-      for subj in self.frame(self._frame) if subj.type == rdf.RDFTermType.IRI
-      for triples in jsonld.jsonld_to_triples(dict(obj, **{'@id': subj.value}))
+      for subj in self.frame(self._frame) if subj.type == rdf.TermType.IRI
+      for triples in jsonld.to_triples(dict(obj, **{'@id': subj.value}))
     )
     return self
 
@@ -282,7 +282,7 @@ class JsonLDDatabase(JsonLDFrame):
     self.index = index.JsonLDIndex()
   #
   def insert(self, obj):
-    self.index.insert_triples(jsonld.jsonld_to_triples(obj))
+    self.index.insert_triples(jsonld.to_triples(obj))
     return self
   #
   def update(self, obj):

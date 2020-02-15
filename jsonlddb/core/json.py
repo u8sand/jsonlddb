@@ -6,8 +6,8 @@ def prepare(o):
   '''
   if isinstance(o, JSON):
     return prepare(o.value)
-  elif isinstance(o, rdf.RDFTerm):
-    if o.type == rdf.RDFTermType.IRI:
+  elif isinstance(o, rdf.Term):
+    if o.type == rdf.TermType.IRI:
       return str(o.value)
     else:
       return [o.value]

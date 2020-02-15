@@ -8,7 +8,7 @@ def is_set(v):
 # These functions allow us to (hopefully efficiently) compute
 #  set union/intersections on sets or iterators or both
 
-def chain_set_union(generators):
+def union(generators):
   # Process sets first
   S = set()
   iterators = collections.deque()
@@ -42,7 +42,7 @@ def chain_set_union(generators):
         pass
   return G()
 
-def chain_set_intersection(generators):
+def intersection(generators):
   # Process sets first
   S_ = None
   # Record element hashes that are missing from some of the sets
@@ -156,11 +156,11 @@ class Map(Lazy):
 
 class ChainUnion(Lazy):
   def __call__(self):
-    return chain_set_union(super().__call__())
+    return union(super().__call__())
 
 class ChainIntersection(Lazy):
   def __call__(self):
-    return chain_set_intersection(super().__call__())
+    return intersection(super().__call__())
 
 class ChainIterable(Lazy):
   def __call__(self):

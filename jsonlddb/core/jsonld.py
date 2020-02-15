@@ -1,7 +1,7 @@
 import logging
 from jsonlddb.core import utils, rdf, json
 
-def jsonld_to_triples(jsonld):
+def to_triples(jsonld):
   Q = [
     ([], None, obj)
     for obj in (jsonld if type(jsonld) == list else [jsonld])
@@ -41,8 +41,8 @@ def jsonld_to_triples(jsonld):
         else:
           relationships.append((p, o))
     # construct a canonical id for the node using the distinguishing literals
-    node_id = rdf.RDFTerm(
-      rdf.RDFTermType.IRI,
+    node_id = rdf.Term(
+      rdf.TermType.IRI,
       existing_id if existing_id is not None else utils.canonical_uuid(literals)
     )
     # register this relationship to its parent(s)
@@ -55,7 +55,7 @@ def jsonld_to_triples(jsonld):
     #
     # register this node's literals
     for p, o in literals:
-      yield (node_id, p, rdf.RDFTerm(rdf.RDFTermType.LITERAL, o))
+      yield (node_id, p, rdf.Term(rdf.TermType.LITERAL, o))
     # add the remaining object relationships to Q to be processed in future iterations
     Q += [
       (subjs + [node_id], p, o)

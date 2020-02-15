@@ -2,33 +2,33 @@ import functools
 import sortedcontainers
 from jsonlddb.core import utils, chain_set, rdf
 
-def jsonld_resolve_index_po(index, pred=None):
+def _resolve_index_po(index, pred=None):
   return index.pos.get(pred, {}).values()
 
-def jsonld_resolve_index_pos(index, pred=None, obj=None):
+def _resolve_index_pos(index, pred=None, obj=None):
   return index.pos.get(pred, {}).get(obj, set())
 
-def jsonld_resolve_frame_object_with_multi_index(multi_index, pred, obj):
+def _resolve_frame_object_with_multi_index(multi_index, pred, obj):
   if pred == '@id':
-    subj = rdf.RDFTerm(rdf.RDFTermType.IRI, obj)
+    subj = rdf.Term(rdf.TermType.IRI, obj)
     # return {subj} if any(subj in index.spo for index in multi_index) else set()
     return chain_set.Iterable(({subj},))
   #
-  if isinstance(obj, rdf.RDFTerm):
+  if isinstance(obj, rdf.Term):
     return \
       multi_index \
-      .map(functools.partial(jsonld_resolve_index_pos, pred=pred, obj=obj))
+      .map(functools.partial(_resolve_index_pos, pred=pred, obj=obj))
   elif obj == {}:
     return \
       multi_index \
-        .map(functools.partial(jsonld_resolve_index_po, pred=pred)) \
+        .map(functools.partial(_resolve_index_po, pred=pred)) \
       .chain()
   else:
     return \
       multi_index \
-      .map(functools.partial(jsonld_resolve_index_pos, pred=pred, obj=rdf.RDFTerm(rdf.RDFTermType.LITERAL, obj)))
+      .map(functools.partial(_resolve_index_pos, pred=pred, obj=rdf.Term(rdf.TermType.LITERAL, obj)))
 
-def jsonld_frame_with_multi_index(multi_index, frame):
+def with_multi_index(multi_index, frame):
   '''
   This is the core of everything--the helper classes simply build off of
     frames.
@@ -49,7 +49,7 @@ def jsonld_frame_with_multi_index(multi_index, frame):
       chain_set.Iterable(utils.force_list(obj)) \
         .map(
           functools.partial(
-            jsonld_resolve_frame_object_with_multi_index,
+            _resolve_frame_object_with_multi_index,
             multi_index,
             path[-1]
           )
@@ -74,7 +74,7 @@ def jsonld_frame_with_multi_index(multi_index, frame):
       subjs \
         .map(
           functools.partial(
-            jsonld_resolve_frame_object_with_multi_index,
+            _resolve_frame_object_with_multi_index,
             multi_index,
             path[-1],
           )

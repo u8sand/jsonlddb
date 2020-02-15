@@ -21,9 +21,9 @@ def load(file, db=None):
   #
   db.index.insert_triples(
     (
-      rdf.RDFTerm(rdf.RDFTermType.IRI, s),
+      rdf.Term(rdf.TermType.IRI, s),
       p,
-      rdf.RDFTerm(rdf.RDFTermType.LITERAL, o[0]) if isinstance(o, list) else rdf.RDFTerm(rdf.RDFTermType.IRI, o),
+      rdf.Term(rdf.TermType.LITERAL, o[0]) if isinstance(o, list) else rdf.Term(rdf.TermType.IRI, o),
     )
     for s, pO in json.load(fr).items()
     for p, O in pO.items()

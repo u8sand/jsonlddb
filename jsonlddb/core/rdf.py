@@ -1,19 +1,19 @@
 import enum
 
-class RDFTermType(enum.Enum):
+class TermType(enum.Enum):
   IRI = 0
   LITERAL = 1
   #
   def __hash__(self):
-    if self == RDFTermType.IRI:
+    if self == TermType.IRI:
       return 0
-    elif self == RDFTermType.LITERAL:
+    elif self == TermType.LITERAL:
       return 1
   #
   def __repr__(self):
-    return 'IRI' if self == RDFTermType.IRI else 'LITERAL'
+    return 'IRI' if self == TermType.IRI else 'LITERAL'
 
-class RDFTerm:
+class Term:
   def __init__(self, type=None, value=None):
     self.type = type
     self.value = value
