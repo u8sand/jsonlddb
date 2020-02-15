@@ -1,6 +1,6 @@
 from jsonlddb import JsonLDDatabase
 
-familial_ownership = JsonLDDatabase().insert([
+familial_ownership = [
   {
     '@id': '0',
     '@type': 'Person',
@@ -28,4 +28,4 @@ familial_ownership = JsonLDDatabase().insert([
     '@type': 'Car',
     'model': 'X',
   },
-])
+]

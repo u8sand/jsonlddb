@@ -12,8 +12,8 @@ except ImportError:
   logging.warning('install jsondiff for easier debugging')
   diff = lambda a, b: str((a, b))
 
-def test_datapackage():
-  db = examples.familial_ownership
+def test_datapackage_example():
+  db = JsonLDDatabase().insert(examples.familial_ownership)
   tmpdir = tempfile.mkdtemp()
   datapackage.to_datapackage(db, tmpdir)
   pkg = DataPackage(os.path.join(tmpdir, 'datapackage.json'))

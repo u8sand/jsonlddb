@@ -1,3 +1,4 @@
+from jsonlddb import JsonLDDatabase
 from jsonlddb.extras import pandas, examples
 
 try:
@@ -8,7 +9,7 @@ except ImportError:
   diff = lambda a, b: str((a, b))
 
 def test_pandas():
-  db = examples.familial_ownership
+  db = JsonLDDatabase().insert(examples.familial_ownership)
   dfs = pandas.to_dfs(db)
   db_recover = pandas.from_dfs(dfs, [
     dict(

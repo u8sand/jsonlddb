@@ -10,7 +10,7 @@ except ImportError:
   diff = lambda a, b: str((a, b))
 
 def test_jsonlddb():
-  db = examples.familial_ownership
+  db = JsonLDDatabase().insert(examples.familial_ownership)
   print(repr(db))
   print(str(db))
   print(repr(db[0]))

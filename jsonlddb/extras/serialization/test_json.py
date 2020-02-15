@@ -1,4 +1,5 @@
 import tempfile
+from jsonlddb import JsonLDDatabase
 from jsonlddb.extras import examples
 from jsonlddb.extras.serialization import json
 
@@ -11,7 +12,7 @@ except ImportError:
 
 def test_json():
   tmp = tempfile.mktemp()
-  db = examples.familial_ownership
+  db = JsonLDDatabase().insert(examples.familial_ownership)
   json.dump(db, tmp)
   db_recover = json.load(tmp)
   assert db.index.spo == db_recover.index.spo, diff(db.index.spo, db_recover.index.spo)
