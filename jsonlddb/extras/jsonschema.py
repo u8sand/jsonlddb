@@ -140,7 +140,7 @@ def to_jsonschema(db, additionalProperties=False):
         predProps['anyOf'] = [dict(prop) for prop in predProps['anyOf']]
       #
       ldTypeSchema['properties'][pred] = predProps
-      if {(False, type(None)), (True, type(None))} & pyTypes:
+      if ({(False, type(None)), (True, type(None))} & pyTypes) == {}:
         ldTypeSchema['required'].append(pred)
     if not ldTypeSchema['required']:
       del ldTypeSchema['required']

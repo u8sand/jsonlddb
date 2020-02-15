@@ -45,6 +45,9 @@ class JSON(object):
   def __repr__(self):
     return repr(self.value)
   #
+  def get(self, k):
+    return self.value.get(k)
+  #
   def __getitem__(self, k):
     return self.value[k]
   #

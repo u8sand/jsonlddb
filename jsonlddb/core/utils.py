@@ -2,7 +2,11 @@ import uuid
 from jsonlddb.core import json, rdf, chain_set
 
 def isLiteral(v):
-  return type(v) in [type(None), str, int, float, bool, uuid.UUID, rdf.Term]
+  if type(v) in [type(None), str, int, float, bool, uuid.UUID, rdf.Term, json.JSON]:
+    return True
+  if type(v) == dict and '@value' in v:
+    return True
+  return False
 
 def force_list(v):
   return v if type(v) == list else [v]

@@ -35,9 +35,10 @@ def to_triples(jsonld, with_wildcard=False, with_deep_wildcard=False):
           assert existing_id is None, 'Only one @id is acceptable'
           existing_id = o
         elif utils.isLiteral(o):
-          literals.append((p, o))
-        elif type(o) == dict and list(o.keys()) == ['@value']: # Force treat object as literal
-          literals.append((p, json.JSON(o['@value'])))
+          if type(o) == dict and list(o.keys()) == ['@value']: # Force treat object as literal
+            literals.append((p, json.JSON(o['@value'])))
+          else:
+            literals.append((p, o))
         else:
           relationships.append((p, o))
     # construct a canonical id for the node using the distinguishing literals

@@ -1,4 +1,5 @@
 import random
+import functools
 
 corpus = None
 
@@ -13,19 +14,57 @@ def random_string():
       corpus = nltk.corpus.words.words()
   return random.choice(corpus)
 
+def random_bool():
+  return random.choice([True, False])
+
+def random_float():
+  return random.random()
+
+def random_int(int_start=0, int_end=100):
+  return random.randint(int_start, int_end)
+
+def random_json_object(int_start=0, int_end=100, mu_attrs=3, std_attrs=2, max_depth=2):
+  obj = {}
+  n_attrs = min(int(random.gauss(mu_attrs, std_attrs)), 3 * std_attrs)
+  for _ in range(n_attrs):
+    obj[random_string()] = random_json(int_start=0, int_end=100, mu_attrs=mu_attrs, std_attrs=std_attrs, max_depth=max_depth - 1)
+  return obj
+
+def random_json(int_start=0, int_end=100, mu_attrs=3, std_attrs=2, max_depth=2):
+  options = [
+    random_int(int_start=int_start, int_end=int_end),
+    random_string(),
+    random_float(),
+    random_bool(),
+    None,
+  ]
+  if max_depth > 0:
+    options.append(
+      random_json_object(mu_attrs=mu_attrs, std_attrs=std_attrs, max_depth=max_depth),
+    )
+  return random.choice(options)
+
+def random_json_factory(int_start=0, int_end=100, mu_attrs=3, std_attrs=2, max_depth=2):
+  options = [
+    functools.partial(random_int, int_start=int_start, int_end=int_end),
+    random_string,
+    random_float,
+    random_bool,
+    lambda: None,
+  ]
+  if max_depth > 0:
+    options.append(
+      functools.partial(random_json_object, mu_attrs=mu_attrs, std_attrs=std_attrs, max_depth=max_depth),
+    )
+  return random.choice(options)
+
 def random_jsonld(n_records, mu_rels, std_rels, mu_lits, std_lits, n_types):
   record_types = [
     random_string()
     for _ in range(n_types)
   ]
   pred_types = {
-    random_string(): random.choice([
-      random_string,
-      lambda: random.randint(0, 100),
-      lambda: random.random(),
-      lambda: random.choice([True, False]),
-      lambda: None,
-    ])
+    random_string(): random_json_factory()
     for _ in range(mu_lits + (3 * std_lits))
   }
   rel_types = [
@@ -43,7 +82,11 @@ def random_jsonld(n_records, mu_rels, std_rels, mu_lits, std_lits, n_types):
       pred = random.choice(list(pred_types.keys()))
       if record.get(pred) is None:
         record[pred] = []
-      record[pred].append(pred_types[pred]())
+      obj = pred_types[pred]()
+      if type(obj) == dict:
+        record[pred].append({ '@value': obj })
+      else:
+        record[pred].append(obj)
     for _ in range(n_rels):
       pred = random.choice(rel_types)
       if record.get(pred) is None:
