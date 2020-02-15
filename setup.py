@@ -17,6 +17,6 @@ setup(
     'extras.datapackage': ['datapackage'],
     'extras.jsonschema': ['jsonschema'],
   },
-  tests_require=['pytest'],
+  tests_require=['pytest', 'pytest-cov'],
   test_suite='pytest',
 )
