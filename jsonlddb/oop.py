@@ -29,10 +29,7 @@ class JsonLDNode:
     else:
       return dict({
         pred: objs._repr() if isinstance(objs, JsonLDFrame) else objs
-        for pred, objs in itertools.islice(
-          self.items(),
-          self._skip, None if self._limit is None else ((0 if self._skip is None else self._skip) + self._limit)
-        )
+        for pred, objs in self.items()
       }) if self._depth else ellipse
   #
   def __repr__(self):
@@ -50,6 +47,7 @@ class JsonLDNode:
         return JsonLDFrame(
           self._db,
           frame={ '~' + pred: self._frame },
+          limit=self._limit,
           depth=self._depth - 1,
           additional=self._additional,
         )
@@ -58,6 +56,7 @@ class JsonLDNode:
       return JsonLDFrame(
         self._db,
         frame=dict(self._frame, **pred),
+        limit=self._limit,
         depth=self._depth - 1,
         additional=self._additional,
       )
@@ -94,6 +93,7 @@ class JsonLDNode:
           frame={
             '~' + pred: self._frame,
           },
+          limit=self._limit,
           depth=self._depth - 1,
           additional=self._additional
         )
@@ -176,6 +176,7 @@ class JsonLDFrame:
       return JsonLDFrame(
         self._db,
         frame={'~' + pred: self._frame},
+        limit=self._limit,
         depth=self._depth,
         additional=self._additional
       )
@@ -191,6 +192,7 @@ class JsonLDFrame:
       return JsonLDFrame(
         self._db,
         frame=dict(self._frame, **pred),
+        limit=self._limit,
         depth=self._depth,
         additional=self._additional,
       )
@@ -203,6 +205,7 @@ class JsonLDFrame:
         yield JsonLDNode(
           self._db, subj.value,
           frame=self._frame,
+          limit=self._limit,
           depth=self._depth,
           additional=self._additional,
         )
@@ -234,7 +237,8 @@ class JsonLDFrame:
   #
   def depth(self, depth):
     return JsonLDFrame(
-      self._db, self._frame,
+      self._db,
+      frame=self._frame,
       skip=self._skip,
       limit=self._limit,
       depth=depth,
